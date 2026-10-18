@@ -1,0 +1,450 @@
+/* ============================================================
+   剂量实验室（模块样式）
+   ============================================================ */
+
+/* ============================================================
+   5. 剂量实验室
+   ============================================================ */
+.dose-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.dose-main { padding: 20px; }
+
+.dose-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.dose-scale-note {
+  font-size: 10.5px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.dose-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dose-row {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 92px;
+  align-items: center;
+  gap: 12px;
+  padding: 7px 8px;
+  border-radius: 9px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s;
+  text-align: left;
+  font-family: inherit;
+  width: 100%;
+  color: var(--text);
+}
+
+.dose-row:hover {
+  background: rgba(120, 190, 255, 0.05);
+  border-color: var(--line);
+}
+
+.dose-row.is-active {
+  background: rgba(56, 225, 255, 0.07);
+  border-color: rgba(56, 225, 255, 0.3);
+}
+
+.dose-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  color: var(--text-2);
+  min-width: 0;
+}
+
+.dose-name .dose-icon {
+  font-size: 14px;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.dose-name .dose-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dose-bar-track {
+  position: relative;
+  height: 16px;
+  border-radius: 5px;
+  background: rgba(120, 190, 255, 0.05);
+  overflow: hidden;
+}
+
+.dose-bar {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 5px;
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.5), var(--bar-c, var(--cyan)));
+  box-shadow: 0 0 12px rgba(56, 225, 255, 0.25);
+  transition: width 0.7s var(--ease-out);
+  min-width: 2px;
+}
+
+.dose-row.is-active .dose-bar {
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.7), var(--bar-c, var(--cyan)));
+}
+
+.dose-value {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.dose-value .dose-unit {
+  color: var(--text-3);
+  font-size: 9.5px;
+  margin-left: 2px;
+}
+
+.dose-axis {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) 92px;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-3);
+}
+
+.dose-axis .axis-ticks {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px dashed var(--line);
+  padding-top: 5px;
+}
+
+.dose-axis .axis-label {
+  display: flex;
+  align-items: center;
+}
+
+/* 详情卡 */
+.dose-detail-card { padding: 18px; }
+
+.dose-detail-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.dose-detail-hero .dd-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  background: rgba(56, 225, 255, 0.1);
+  border: 1px solid rgba(56, 225, 255, 0.22);
+  flex-shrink: 0;
+}
+
+.dose-detail-hero h3 {
+  font-size: 16px;
+  line-height: 1.3;
+}
+
+.dose-detail-hero .dd-group {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 2px;
+}
+
+.big-dose {
+  font-family: var(--font-mono);
+  font-size: 30px;
+  font-weight: 800;
+  color: var(--cyan);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.big-dose small {
+  font-size: 12px;
+  color: var(--text-3);
+  font-family: var(--font-sans);
+  font-weight: 500;
+  margin-left: 4px;
+}
+
+.equiv-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 12px;
+}
+
+.equiv-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(120, 190, 255, 0.04);
+  border: 1px solid var(--line);
+}
+
+.equiv-item b { color: var(--text); font-family: var(--font-mono); }
+
+.equiv-item .equiv-icon { font-size: 14px; }
+
+/* 环形图 */
+.donut-wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.donut {
+  position: relative;
+  width: 148px;
+  height: 148px;
+  flex-shrink: 0;
+}
+
+.donut svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+
+.donut circle {
+  fill: none;
+  stroke-width: 18;
+  transition: stroke-width 0.2s;
+}
+
+.donut .donut-seg { cursor: default; }
+.donut .donut-seg:hover { stroke-width: 22; }
+
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  pointer-events: none;
+}
+
+.donut-center b {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 20px;
+  color: var(--text);
+  line-height: 1;
+}
+
+.donut-center span {
+  font-size: 9.5px;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+}
+
+.donut-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 150px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-2);
+}
+
+.legend-item i {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  background: var(--lc);
+  flex-shrink: 0;
+}
+
+.legend-item b {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text);
+}
+
+/* 单位卡 */
+.unit-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 9px;
+}
+
+.unit-card {
+  padding: 13px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.035);
+}
+
+.unit-card .unit-sym {
+  font-family: var(--font-mono);
+  font-size: 21px;
+  font-weight: 700;
+  color: var(--cyan);
+  line-height: 1;
+}
+
+.unit-card b {
+  display: block;
+  font-size: 12.5px;
+  margin: 5px 0 4px;
+}
+
+.unit-card span {
+  font-size: 10.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+  display: block;
+}
+
+.converter {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.converter-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.converter input {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: rgba(4, 10, 18, 0.6);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 14px;
+}
+
+.converter input:focus {
+  outline: none;
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(56, 225, 255, 0.1);
+}
+
+.converter select {
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: rgba(4, 10, 18, 0.8);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.converter-result {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+}
+
+.conv-out {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(120, 190, 255, 0.04);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.conv-out span { font-size: 10.5px; color: var(--text-3); }
+.conv-out b { font-family: var(--font-mono); font-size: 12.5px; color: var(--text); }
+
+/* ---------- 剂量响应式 ---------- */
+@media (max-width: 1080px) {
+  .dose-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .dose-axis,
+  .dose-row {
+    grid-template-columns: 150px minmax(0, 1fr) 80px;
+  }
+}
+
+@media (max-width: 720px) {
+  .dose-row,
+  .dose-axis {
+    grid-template-columns: 118px minmax(0, 1fr) 74px;
+    gap: 8px;
+  }
+
+  .dose-name { font-size: 11.5px; }
+  .dose-name .dose-icon { display: none; }
+  .dose-value { font-size: 10.5px; }
+
+  .unit-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 560px) {
+  .dose-row,
+  .dose-axis {
+    grid-template-columns: 96px minmax(0, 1fr) 64px;
+    gap: 6px;
+  }
+
+  .dose-name .dose-text { font-size: 10.5px; }
+  .converter-result { grid-template-columns: 1fr; }
+}
+
+/* 剂量条视觉增强 */
+.dose-bar-track {
+  height: 14px;
+  background: rgba(120, 190, 255, 0.07);
+}
+
+.dose-bar {
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.35), var(--bar-c, var(--cyan)));
+  box-shadow: 0 0 10px rgba(56, 225, 255, 0.2);
+}
+
+.dose-row:hover .dose-bar {
+  filter: brightness(1.25);
+}
+
+.dose-row.is-active .dose-bar {
+  filter: brightness(1.3);
+}

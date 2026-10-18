@@ -1,0 +1,485 @@
+/* ============================================================
+   核电站建造（模块样式）
+   ============================================================ */
+
+/* ============================================================
+   3. 核电站建造
+   ============================================================ */
+.plant-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 16px;
+  align-items: start;
+}
+
+.plant-stage {
+  position: relative;
+  padding: 14px;
+  overflow: hidden;
+  min-height: 360px;
+}
+
+.plant-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(560px 300px at 30% 20%, rgba(56, 225, 255, 0.05), transparent 70%),
+    radial-gradient(420px 280px at 82% 82%, rgba(62, 240, 162, 0.04), transparent 70%);
+  pointer-events: none;
+}
+
+.plant-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.plant-svg text {
+  font-family: var(--font-sans);
+  user-select: none;
+}
+
+.plant-svg .slot {
+  fill: rgba(120, 190, 255, 0.02);
+  stroke: rgba(120, 190, 255, 0.28);
+  stroke-width: 1.2;
+  stroke-dasharray: 5 6;
+  transition: stroke 0.25s, fill 0.25s;
+}
+
+.plant-svg .slot.is-next {
+  stroke: var(--cyan);
+  fill: rgba(56, 225, 255, 0.06);
+  animation: slotPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes slotPulse {
+  0%, 100% { stroke-opacity: 0.45; }
+  50% { stroke-opacity: 1; }
+}
+
+.plant-svg .slot-label {
+  fill: rgba(150, 180, 212, 0.62);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+}
+
+.plant-svg .part {
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.45s var(--ease-out), transform 0.45s var(--ease-out);
+}
+
+.plant-svg .part.is-built {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.plant-svg .part.is-just-built {
+  animation: buildFlash 0.9s ease-out;
+}
+
+@keyframes buildFlash {
+  0% { filter: drop-shadow(0 0 0 rgba(56, 225, 255, 0)); }
+  35% { filter: drop-shadow(0 0 14px rgba(56, 225, 255, 0.85)); }
+  100% { filter: drop-shadow(0 0 0 rgba(56, 225, 255, 0)); }
+}
+
+.plant-svg .part-label {
+  fill: rgba(200, 220, 240, 0.78);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.plant-svg .part-label.is-loop1 { fill: #ffc98a; }
+.plant-svg .part-label.is-loop2 { fill: #9fe9ff; }
+.plant-svg .part-label.is-loop3 { fill: #9cf7cd; }
+
+.plant-svg .pipe {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  transition: stroke 0.4s, opacity 0.4s;
+}
+
+.plant-svg .pipe.l1 { stroke: rgba(255, 171, 61, 0.22); }
+.plant-svg .pipe.l2 { stroke: rgba(56, 225, 255, 0.22); }
+.plant-svg .pipe.l3 { stroke: rgba(62, 240, 162, 0.22); }
+
+.plant-svg .pipe.is-live.l1 { stroke: rgba(255, 171, 61, 0.82); }
+.plant-svg .pipe.is-live.l2 { stroke: rgba(56, 225, 255, 0.8); }
+.plant-svg .pipe.is-live.l3 { stroke: rgba(62, 240, 162, 0.8); }
+
+.plant-svg .flow {
+  fill: none;
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  stroke-dasharray: 2 16;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.plant-svg .flow.l1 { stroke: #ffcf8a; }
+.plant-svg .flow.l2 { stroke: #a5f0ff; }
+.plant-svg .flow.l3 { stroke: #a7fdda; }
+
+.plant-svg .flow.is-on {
+  opacity: 1;
+  animation: dashFlow 2.2s linear infinite;
+}
+
+.plant-svg .flow.speed-2 { animation-duration: 1.2s; }
+.plant-svg .flow.speed-3 { animation-duration: 0.8s; }
+
+.plant-svg .pipe-halo {
+  fill: none;
+  stroke: rgba(56, 225, 255, 0.06);
+  stroke-width: 9;
+  stroke-linecap: round;
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.plant-svg .pipe-halo.is-on { opacity: 1; }
+
+.plant-toolbar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.plant-toolbar > * { pointer-events: auto; }
+
+.plant-toolbar .stage-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px;
+  border-radius: 9px;
+  background: rgba(5, 12, 22, 0.78);
+  border: 1px solid var(--line);
+  font-size: 11.5px;
+  color: var(--text-2);
+  backdrop-filter: blur(6px);
+}
+
+.plant-toolbar .stage-title b { color: var(--text); font-size: 12.5px; }
+
+.stage-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* 侧栏 */
+.plant-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.build-panel { padding: 16px 16px 18px; }
+
+.build-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 292px;
+  overflow-y: auto;
+}
+
+.build-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--text-3);
+  transition: all 0.25s;
+}
+
+.build-step .step-no {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  background: rgba(120, 190, 255, 0.04);
+}
+
+.build-step.is-current {
+  color: var(--cyan);
+  background: rgba(56, 225, 255, 0.08);
+}
+
+.build-step.is-current .step-no {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  box-shadow: 0 0 10px rgba(56, 225, 255, 0.3);
+}
+
+.build-step.is-done {
+  color: var(--text-2);
+}
+
+.build-step.is-done .step-no {
+  background: var(--green-soft);
+  border-color: rgba(62, 240, 162, 0.4);
+  color: var(--green);
+}
+
+.build-step .step-tag {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-3);
+}
+
+/* 部件托盘 */
+.tray-panel { padding: 14px 16px 16px; }
+
+.part-tray {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 7px;
+  max-height: 300px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.part-card {
+  position: relative;
+  padding: 9px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line-2);
+  background: linear-gradient(150deg, rgba(17, 36, 63, 0.9), rgba(8, 18, 34, 0.9));
+  color: var(--text-2);
+  font-size: 12px;
+  text-align: left;
+  cursor: grab;
+  transition: all 0.2s;
+  touch-action: none;
+  font-family: inherit;
+  line-height: 1.35;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.part-card .part-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-3);
+  flex-shrink: 0;
+}
+
+.part-card:hover {
+  color: var(--text);
+  border-color: var(--cyan);
+  transform: translateY(-1px);
+}
+
+.part-card.is-distractor .part-dot { background: rgba(255, 107, 107, 0.5); }
+.part-card.is-used {
+  opacity: 0.25;
+  pointer-events: none;
+  text-decoration: line-through;
+}
+
+.plant-info {
+  padding: 16px;
+  min-height: 148px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.plant-info .info-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  color: var(--cyan);
+}
+
+.plant-info h3 {
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.plant-info p {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--text-2);
+}
+
+.plant-info .info-fact {
+  font-size: 11.5px;
+  color: var(--amber);
+  display: flex;
+  gap: 7px;
+  align-items: baseline;
+}
+
+.loop-legend {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.loop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 11px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.04);
+  color: var(--text-2);
+  font-size: 11.5px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.loop-btn:hover { color: var(--text); border-color: var(--line-2); }
+
+.loop-btn .loop-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--loop-c, var(--cyan));
+  box-shadow: 0 0 8px var(--loop-c, var(--cyan));
+}
+
+.loop-btn.is-active {
+  color: var(--text);
+  border-color: var(--loop-c, var(--cyan));
+  background: rgba(56, 225, 255, 0.07);
+}
+
+.loop-btn .loop-state {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-3);
+}
+
+/* ---------- 建造响应式 ---------- */
+@media (max-width: 1080px) {
+  .plant-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .plant-side {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+
+  .plant-side .plant-info {
+    grid-column: 1 / -1;
+    min-height: 0;
+  }
+}
+
+@media (max-width: 720px) {
+  .plant-side {
+    grid-template-columns: 1fr;
+  }
+
+  .part-tray {
+    max-height: none;
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .plant-stage { padding: 8px; }
+  .plant-toolbar { top: 8px; left: 8px; right: 8px; }
+  .plant-toolbar .stage-title { font-size: 10.5px; padding: 5px 9px; }
+}
+
+/* ---------- 建造交互补充 ---------- */
+.plant-stage {
+  padding-top: 54px;
+}
+
+.plant-svg .slot-group.is-done {
+  display: none;
+}
+
+.plant-svg .pipe.grid-pipe {
+  stroke: rgba(255, 207, 138, 0.26);
+}
+
+.plant-svg.focus-loop-1 .pipe:not(.l1) { opacity: 0.16; }
+.plant-svg.focus-loop-2 .pipe:not(.l2) { opacity: 0.16; }
+.plant-svg.focus-loop-3 .pipe:not(.l3) { opacity: 0.16; }
+
+.plant-svg .part.is-built .part-label {
+  animation: fadeIn 0.6s ease both;
+}
+
+/* ---------- 移动端：工程图横向滚动 ---------- */
+.plant-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  border-radius: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.scroll-hint {
+  display: none;
+  font-size: 9.5px;
+  color: var(--text-3);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .plant-scroll .plant-svg {
+    min-width: 820px;
+  }
+
+  .scroll-hint {
+    display: inline;
+  }
+}
+
+
+@media (max-width: 720px) {
+  .plant-toolbar .stage-title {
+    white-space: nowrap;
+    gap: 5px;
+  }
+
+  .plant-toolbar .stage-title b {
+    display: none;
+  }
+
+  .scroll-hint {
+    display: inline;
+    margin-left: 4px;
+  }
+}
