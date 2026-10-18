@@ -117,7 +117,7 @@
 ### 方式一：直接打开（推荐体验）
 
 ```bash
-git clone <your-repo-url> nuclear-epoch
+git clone https://github.com/Pig-7788/nuclearplsx.git nuclear-epoch
 cd nuclear-epoch
 open index.html        # macOS
 # 或直接双击 index.html
@@ -316,7 +316,7 @@ NEG.registerMode({
 4. **Branch** 选择 `main`，目录选择 **`/ (root)`**，保存；
 5. 等待 1–2 分钟，访问 `https://<username>.github.io/<repo>/`。
 
-> `index.html` 必须位于部署目录根层级，`assets/` 与其同级。项目不使用任何绝对路径或构建产物。
+> `index.html` 必须位于部署目录根层级，`assets/` 与其同级。项目不使用任何绝对路径或构建产物。启用后访问 <https://pig-7788.github.io/nuclearplsx/>。
 
 ---
 
@@ -361,7 +361,7 @@ NEG.registerMode({
 
 ## 📚 引用与致谢
 
-- 概念启发：开源小游戏《辟谣者联盟：核能纪元》（原作者仓库：[Pig-7788/nuclearplsx](https://github.com/Pig-7788/nuclearplsx)）。本项目在其「打假 + 建造」创意基础上**完全重写**了视觉、交互、物理模型与全部内容。
+- 概念启发：本仓库的早期版本《辟谣者联盟：核能纪元》（保留在 git 提交历史中）。本项目在其「打假 + 建造」创意基础上**完全重写**了视觉、交互、物理模型与全部内容。
 - 科普事实与数据来自 IAEA、ICRP、WHO、UNSCEAR、国家核安全局、国家能源局、中国核能行业协会等公开资料；如发现事实错误，欢迎提交 Issue 指正。
 
 ---
