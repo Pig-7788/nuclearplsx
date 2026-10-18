@@ -807,13 +807,19 @@ window.NEG = window.NEG || {};
       router.currentId = def.id;
       NEG.router.currentId = def.id;
 
-      // 导航高亮
+      // 导航高亮 + 小屏时把当前项滚入可视区
+      let activeLink = null;
       ui.qsa('.nav-link').forEach((a) => {
         const active = a.dataset.mode === def.id;
         a.classList.toggle('is-active', active);
-        if (active) a.setAttribute('aria-current', 'page');
+        if (active) { a.setAttribute('aria-current', 'page'); activeLink = a; }
         else a.removeAttribute('aria-current');
       });
+      const navEl = document.getElementById('modeNav');
+      if (activeLink && navEl && navEl.scrollWidth > navEl.clientWidth + 4) {
+        const left = activeLink.offsetLeft - (navEl.clientWidth - activeLink.offsetWidth) / 2;
+        navEl.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
+      }
 
       document.title = def.id === 'home' ? '核纪元 · 交互式核能实验室' : def.title + ' · 核纪元';
       view.focus({ preventScroll: true });
@@ -893,6 +899,135 @@ window.NEG = window.NEG || {};
     });
   }
 
+  /* ==========================================================
+     启动自检 / 资源恢复
+     ========================================================== */
+  const REQUIRED_MODES = ['home', 'rumor', 'city', 'console', 'dose', 'china'];
+  const MODE_TITLES = {
+    home: '首页', rumor: '辟谣实验室', city: '核电站建造',
+    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电'
+  };
+  const MODE_SRCS = {
+    home: 'assets/js/modes/home.js',
+    rumor: 'assets/js/modes/rumor.js',
+    city: 'assets/js/modes/city.js',
+    console: 'assets/js/modes/console.js',
+    dose: 'assets/js/modes/dose.js',
+    china: 'assets/js/modes/china.js'
+  };
+  const DATA_RES = [
+    { id: 'rumors', label: '辟谣题库', src: 'assets/js/data/rumors.js', check: () => Array.isArray(NEG.data.rumors) && NEG.data.rumors.length > 0 },
+    { id: 'doses', label: '剂量数据', src: 'assets/js/data/doses.js', check: () => Array.isArray(NEG.data.doses) && NEG.data.doses.length > 0 },
+    { id: 'china', label: '中国核电数据', src: 'assets/js/data/china.js', check: () => !!(NEG.data.china && NEG.data.china.timeline) },
+    { id: 'reactor', label: '压水堆数据', src: 'assets/js/data/reactor.js', check: () => !!(NEG.data.plant && NEG.data.plant.parts && NEG.data.plant.parts.length === 12) },
+    { id: 'svg', label: '工程图', src: 'assets/js/svg.js', check: () => !!(NEG.svg && typeof NEG.svg.plant === 'function') },
+    { id: 'model', label: '反应堆模型', src: 'assets/js/console-model.js', check: () => !!(NEG.ReactorModel && typeof NEG.ReactorModel.create === 'function') }
+  ];
+  let bootGuardEl = null;
+  let recovering = false;
+  let pendingMode = null;
+
+  function ensureBootGuard() {
+    if (!bootGuardEl) {
+      bootGuardEl = document.createElement('div');
+      bootGuardEl.id = 'bootGuard';
+      bootGuardEl.className = 'boot-guard';
+      document.body.appendChild(bootGuardEl);
+    }
+    bootGuardEl.hidden = false;
+    return bootGuardEl;
+  }
+
+  function resourceProblems() {
+    if (!NEG.tasks || typeof NEG.tasks.get !== 'function') {
+      return [{ id: 'core', label: '模块管理器', src: 'assets/js/task-manager.js', fatal: true }];
+    }
+    const problems = [];
+    DATA_RES.forEach((r) => {
+      let ok = false;
+      try { ok = !!r.check(); } catch (e) { ok = false; }
+      if (!ok) problems.push(r);
+    });
+    REQUIRED_MODES.forEach((id) => {
+      if (!NEG.tasks.get(id)) problems.push({ id: 'mode-' + id, label: '实验室模块', src: MODE_SRCS[id] });
+    });
+    return problems;
+  }
+
+  function renderBootGuard(problems) {
+    const el = ensureBootGuard();
+    const fatal = problems.some((p) => p.fatal);
+    const names = problems.filter((p) => !p.fatal).map((p) => {
+      if (p.id.indexOf('mode-') === 0) return MODE_TITLES[p.id.slice(5)] || '模块';
+      return p.label;
+    });
+    const detail = names.length ? '（缺少：' + Array.from(new Set(names)).join('、') + '）' : '';
+    el.innerHTML =
+      '<span class="boot-guard-text">' + NEG.icon('alert', 15) +
+        '<span>部分资源未加载成功' + (fatal ? '（核心模块缺失，请刷新页面）' : detail + '，可能缺少部分功能。') + '</span></span>' +
+      '<span class="boot-guard-actions">' +
+        (fatal ? '' : '<button class="btn btn-sm btn-primary" type="button" data-bg-retry>重试加载</button>') +
+        '<button class="btn btn-sm btn-ghost" type="button" data-bg-reload>刷新页面</button>' +
+      '</span>';
+    const retry = el.querySelector('[data-bg-retry]');
+    if (retry) retry.addEventListener('click', retryMissingResources);
+    el.querySelector('[data-bg-reload]').addEventListener('click', () => location.reload());
+  }
+
+  function checkBootHealth() {
+    const problems = resourceProblems();
+    if (!problems.length) {
+      if (bootGuardEl) { bootGuardEl.hidden = true; bootGuardEl.innerHTML = ''; }
+      return;
+    }
+    renderBootGuard(problems);
+  }
+
+  function loadScriptOnce(src) {
+    return new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'retry=' + Date.now();
+      s.onload = () => resolve();
+      s.onerror = () => reject(new Error('加载失败：' + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function retryMissingResources() {
+    if (recovering) return;
+    recovering = true;
+    const btn = bootGuardEl && bootGuardEl.querySelector('[data-bg-retry]');
+    if (btn) { btn.disabled = true; btn.textContent = '正在重试…'; }
+    const before = resourceProblems().filter((p) => !p.fatal);
+    for (const item of before) {
+      try { await loadScriptOnce(item.src); } catch (e) { /* 继续尝试下一个 */ }
+    }
+    try { buildNav(); } catch (e) { /* noop */ }
+    const still = resourceProblems();
+    if (!still.length) {
+      if (bootGuardEl) { bootGuardEl.hidden = true; bootGuardEl.innerHTML = ''; }
+      try {
+        const hashId = (location.hash || '').replace(/^#\/?/, '');
+        const target = (pendingMode && NEG.tasks.get(pendingMode)) ? pendingMode
+          : ((hashId && NEG.tasks.get(hashId)) ? hashId : (router.currentId || 'home'));
+        pendingMode = null;
+        router.go(target, { force: true });
+        ui.toast('资源已恢复，功能正常', 'success');
+      } catch (e) { location.reload(); }
+    } else {
+      renderBootGuard(still);
+      ui.toast('仍有资源加载失败，请检查网络后刷新', 'error');
+    }
+    recovering = false;
+  }
+
+  // 捕获脚本资源加载错误（资源错误不冒泡，用捕获阶段）
+  window.addEventListener('error', (e) => {
+    if (e.target && e.target.tagName === 'SCRIPT') {
+      setTimeout(checkBootHealth, 300);
+    }
+  }, true);
+
   function helpContent() {
     return (
       '<p>「核纪元」是一座可以亲手拆解、建造、运行的核能科普实验室。所有内容基于 IAEA、ICRP、WHO、UNSCEAR 等机构的公开资料整理。</p>' +
@@ -967,14 +1102,21 @@ window.NEG = window.NEG || {};
     if (document.body) {
       document.body.classList.toggle('reduce-motion', !!(data.settings && data.settings.reduceMotion));
     }
+    if (!NEG.tasks || typeof NEG.tasks.list !== 'function') {
+      renderBootGuard([{ id: 'core', label: '模块管理器', src: 'assets/js/task-manager.js', fatal: true }]);
+      return;
+    }
     buildNav();
     bindHeader();
     NEG.updateHeader();
     achievements.checkAll({ silent: false });
 
     const hashId = (location.hash || '').replace(/^#\/?/, '');
+    if (hashId && !NEG.tasks.get(hashId)) pendingMode = hashId;
     const startId = (hashId && NEG.tasks.get(hashId)) ? hashId : (NEG.tasks.get(data.lastMode) ? data.lastMode : 'home');
     router.go(startId, { force: true });
+
+    setTimeout(checkBootHealth, 1200);
 
     // 首次音频解锁
     const unlockAudio = () => {
@@ -986,10 +1128,19 @@ window.NEG = window.NEG || {};
     document.addEventListener('keydown', unlockAudio, true);
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', boot);
-  } else {
+  /* 注意：脚本加了 defer 后，core.js 可能在 DOMContentLoaded 之前执行，
+     此时模式脚本尚未注册。必须等所有 defer 脚本执行完（DCL 或 load）再启动。 */
+  let booted = false;
+  function bootOnce() {
+    if (booted) return;
+    booted = true;
     boot();
+  }
+  if (document.readyState === 'complete') {
+    bootOnce();
+  } else {
+    document.addEventListener('DOMContentLoaded', bootOnce, { once: true });
+    window.addEventListener('load', bootOnce, { once: true });
   }
 
   /* 对外工具挂载 */

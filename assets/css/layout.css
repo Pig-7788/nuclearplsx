@@ -334,3 +334,90 @@
 #view.is-entering > * {
   animation: fadeUp 0.45s var(--ease-out) both;
 }
+
+/* ============================================================
+   移动端：底部 Tab 导航（≤640px）
+   ============================================================ */
+@media (max-width: 640px) {
+  .app-header {
+    /* 移除 backdrop-filter，避免为 fixed 子元素创建包含块 */
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    background: rgba(4, 10, 18, 0.97);
+  }
+
+  .mode-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    z-index: 90;
+    width: 100%;
+    margin: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
+    display: flex;
+    justify-content: space-around;
+    gap: 2px;
+    overflow: visible;
+    background: rgba(4, 10, 18, 0.97);
+    border-top: 1px solid var(--line);
+    border-bottom: 0;
+    box-shadow: 0 -12px 34px rgba(0, 0, 0, 0.38);
+  }
+
+  .nav-link {
+    flex: 1 1 0;
+    min-width: 0;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    padding: 6px 1px;
+    border-radius: 9px;
+    font-size: clamp(8px, 2.35vw, 9.5px);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .nav-link span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .nav-link svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .nav-link.is-active {
+    background: rgba(56, 225, 255, 0.1);
+    border-color: rgba(56, 225, 255, 0.26);
+  }
+
+  body {
+    padding-bottom: calc(62px + env(safe-area-inset-bottom));
+  }
+
+  #view {
+    padding-bottom: 34px;
+  }
+
+  .app-footer {
+    padding-bottom: 22px;
+  }
+
+  .toast-root {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
+
+/* 平板：顶部导航可横向滚动，右侧渐隐提示 */
+@media (min-width: 641px) and (max-width: 960px) {
+  .mode-nav {
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);
+  }
+}

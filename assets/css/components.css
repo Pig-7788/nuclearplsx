@@ -646,3 +646,69 @@ kbd {
   .toast-root { right: 12px; top: auto; bottom: 14px; left: 12px; max-width: none; }
   .toast { animation: fadeUp 0.3s var(--ease-spring) both; }
 }
+
+/* ---------- 启动自检提示 ---------- */
+.boot-guard {
+  position: fixed;
+  left: 18px;
+  bottom: 18px;
+  z-index: 180;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 14px;
+  border: 1px solid rgba(255, 200, 87, 0.42);
+  border-radius: 13px;
+  background: rgba(24, 18, 6, 0.96);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-size: 12.5px;
+  max-width: min(580px, calc(100vw - 36px));
+  animation: fadeUp 0.3s var(--ease-out) both;
+}
+
+.boot-guard[hidden] {
+  display: none !important;
+}
+
+.boot-guard .boot-guard-text {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  line-height: 1.5;
+}
+
+.boot-guard .boot-guard-text svg {
+  color: var(--amber);
+  flex-shrink: 0;
+}
+
+.boot-guard-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .boot-guard {
+    left: 10px;
+    right: 10px;
+    bottom: calc(74px + env(safe-area-inset-bottom));
+    max-width: none;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .boot-guard-actions {
+    justify-content: flex-end;
+  }
+}
+
+
+@media (max-width: 640px) {
+  .toast-root {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}
