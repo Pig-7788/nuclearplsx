@@ -39,22 +39,24 @@
       const bestSteps = st.modes.city.bestSteps || 0;
 
       root.innerHTML =
-        ui.pageHead({
-          eyebrow: 'CONSTRUCTION SITE · 工程建造',
-          icon: 'build',
-          title: '核电站建造',
-          lead: '从堆芯到电网，按正确顺序拼装 12 个核心部件。每建成一个，三回路的热量路径就会亮起一段。',
-          tools: '<span class="badge badge-cyan">建造进度 <b id="builtCount">0</b>/' + total + '</span>' +
-                 '<button class="btn btn-quiet btn-sm" data-action="reset">' + NEG.icon('refresh', 14) + '重新建造</button>'
-        }) +
+        '<div class="mode-page city-page">' +
+          '<header class="page-top city-top">' +
+            '<div class="pt-brand">' +
+              '<span class="eyebrow">CONSTRUCTION SITE · 工程建造</span>' +
+              '<h2>' + NEG.icon('build') + '核电站建造</h2>' +
+            '</div>' +
+            '<span class="lead-inline">从堆芯到电网，按正确顺序拼装 12 个核心部件。</span>' +
+            '<div class="pt-tools">' +
+              '<span class="badge badge-cyan">建造进度 <b id="builtCount">0</b>/' + total + '</span>' +
+              '<button class="btn btn-quiet btn-sm" data-action="hint">' + NEG.icon('info', 13) + '提示</button>' +
+              '<button class="btn btn-quiet btn-sm" data-action="reset">' + NEG.icon('refresh', 14) + '重新建造</button>' +
+            '</div>' +
+          '</header>' +
         '<div class="plant-layout">' +
           '<section class="panel plant-stage anim-fade-up" id="plantStage" aria-label="压水堆剖面建造区">' +
             '<div class="plant-toolbar">' +
               '<span class="stage-title">' + NEG.icon('target', 14) + '压水堆剖面 <b>PWR · 3 LOOPS</b>' +
                 '<span class="scroll-hint">左右滑动 ›</span></span>' +
-              '<span class="stage-actions">' +
-                '<button class="btn btn-quiet btn-sm" data-action="hint">' + NEG.icon('info', 13) + '提示</button>' +
-              '</span>' +
             '</div>' +
             '<div class="plant-scroll">' + NEG.svg.plant() + '</div>' +
           '</section>' +
@@ -75,7 +77,7 @@
               '<div class="part-tray" id="partTray"></div>' +
             '</section>' +
             '<section class="panel plant-info anim-fade-up d3" id="plantInfo"></section>' +
-            '<section class="panel panel-pad anim-fade-up d3">' +
+            '<section class="panel panel-pad loop-panel anim-fade-up d3">' +
               '<div class="panel-head" style="margin-bottom:10px">' +
                 '<h3>' + NEG.icon('radiation') + '回路状态</h3>' +
                 '<span class="panel-note">点击查看</span>' +
@@ -90,7 +92,10 @@
               '</div>' +
             '</section>' +
           '</aside>' +
+        '</div>' +
         '</div>';
+
+      const exitShell = NEG.shell.full('city');
 
       const svg = root.querySelector('.plant-svg');
       const stage = root.querySelector('#plantStage');
@@ -449,6 +454,7 @@
 
       return function cleanup() {
         document.body.classList.remove('is-dragging');
+        exitShell();
       };
     }
   });
