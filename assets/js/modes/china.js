@@ -1,6 +1,7 @@
 /* ============================================================
    核纪元 · 中国核电
    数据速览 · 里程碑时间线 · 堆型 · 电站分布
+   本页为「自动循环滚动」阅读：内容无缝向上滚动，可以暂停
    ============================================================ */
 (function (NEG) {
   'use strict';
@@ -32,16 +33,8 @@
       const viewed = new Set(store.get().modes.china.viewed || []);
       const timeline = china.timeline || [];
 
-      root.innerHTML =
-        ui.pageHead({
-          eyebrow: 'CHINA NUCLEAR · 中国核电',
-          icon: 'flag',
-          title: '中国核电',
-          lead: '从 1991 年秦山一期并网，到自主三代“华龙一号”、模块小堆“玲龙一号”和第四代高温气冷堆——这是中国核电的四十余年。',
-          tools: '<span class="badge badge-amber">数据截至 ' + U.esc(china.updated || '2025') + '</span>' +
-                 '<span class="badge badge-line">里程碑 ' + viewed.size + ' / ' + timeline.length + '</span>'
-        }) +
-
+      /* ---------- 滚动内容（一节，复制后首尾相接）---------- */
+      const chunkHTML =
         /* 核心数据 */
         '<section class="china-stats anim-fade-up">' +
           (china.stats || []).map((st) => (
@@ -111,6 +104,52 @@
           ' 核电装机与发电量数据随新机组投运持续变化，请以最新官方发布为准。' +
         '</div>';
 
+      root.innerHTML =
+        '<div class="mode-page china-page">' +
+          '<header class="page-top china-top">' +
+            '<div class="pt-brand">' +
+              '<span class="eyebrow">CHINA NUCLEAR · 中国核电</span>' +
+              '<h2>' + NEG.icon('flag') + '中国核电</h2>' +
+            '</div>' +
+            '<span class="lead-inline">从 1991 年秦山一期并网，到自主三代「华龙一号」与「人造太阳」——四十余年，页面自动循环播放。</span>' +
+            '<div class="pt-tools">' +
+              '<span class="badge badge-amber">数据截至 ' + U.esc(china.updated || '2025') + '</span>' +
+              '<span class="badge badge-line" id="milestoneBadge">里程碑 ' + viewed.size + ' / ' + timeline.length + '</span>' +
+              '<button class="btn btn-quiet btn-sm" data-action="pause" aria-pressed="false">' +
+                NEG.icon('clock', 14) + '<span>暂停滚动</span>' +
+              '</button>' +
+            '</div>' +
+          '</header>' +
+          '<div class="china-viewport" id="chinaViewport">' +
+            '<div class="china-track" id="chinaTrack">' +
+              '<div class="china-chunk" data-chunk>' + chunkHTML + '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
+
+      const exitShell = NEG.shell.full('china');
+      const viewport = root.querySelector('#chinaViewport');
+      const track = root.querySelector('#chinaTrack');
+
+      /* ---------- 自动循环滚动 ---------- */
+      const marquee = NEG.marquee.create({
+        viewport,
+        track,
+        speed: 32
+      });
+
+      /* 暂停 / 继续 */
+      const pauseBtn = root.querySelector('[data-action="pause"]');
+      if (pauseBtn && marquee) {
+        pauseBtn.addEventListener('click', () => {
+          const paused = marquee.toggle();
+          pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+          pauseBtn.querySelector('span').textContent = paused ? '继续滚动' : '暂停滚动';
+          pauseBtn.classList.toggle('is-off', paused);
+          audio.play('click');
+        });
+      }
+
       /* ---------- 数字滚动 ---------- */
       ui.qsa('.stat-num', root).forEach((el) => {
         const raw = el.dataset.num || '';
@@ -126,8 +165,8 @@
 
       /* ---------- 时间线浏览记录 ---------- */
       const seenNow = new Set();
+      const badge = root.querySelector('#milestoneBadge');
       function updateBadge() {
-        const badge = ui.qs('.view-head .badge-line', root);
         if (badge) badge.textContent = '里程碑 ' + viewed.size + ' / ' + timeline.length;
       }
       function markViewed(index) {
@@ -144,15 +183,15 @@
       }
 
       const items = ui.qsa('.timeline-item', root);
+      let io = null;
       if ('IntersectionObserver' in window) {
-        const io = new IntersectionObserver((entries) => {
+        io = new IntersectionObserver((entries) => {
           entries.forEach((entry) => {
             if (entry.isIntersecting) {
               markViewed(Number(entry.target.dataset.milestone));
-              io.unobserve(entry.target);
             }
           });
-        }, { rootMargin: '0px 0px -20% 0px', threshold: 0.3 });
+        }, { root: viewport, rootMargin: '0px 0px -10% 0px', threshold: 0.3 });
         items.forEach((el) => io.observe(el));
         /* 首屏可见的几条立即记录 */
         items.slice(0, 2).forEach((el) => markViewed(Number(el.dataset.milestone)));
@@ -162,14 +201,19 @@
 
       /* 点击时间线卡片：轻提示 */
       items.forEach((el) => {
-        el.querySelector('.tl-card').addEventListener('click', () => {
+        const card = el.querySelector('.tl-card');
+        if (!card) return;
+        card.addEventListener('click', () => {
           audio.play('click');
           markViewed(Number(el.dataset.milestone));
         });
       });
 
-      const cleanup = () => { /* IntersectionObserver 会在页面卸载时自动释放 */ };
-      return cleanup;
+      return function cleanup() {
+        if (marquee) marquee.destroy();
+        if (io) { io.disconnect(); io = null; }
+        exitShell();
+      };
     }
   });
 })(window.NEG);

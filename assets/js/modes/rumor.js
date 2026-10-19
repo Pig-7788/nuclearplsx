@@ -1,5 +1,6 @@
 /* ============================================================
    核纪元 · 辟谣实验室
+   一屏内完成「谣言 → 三选一 → 核查卡」，
    拖拽 / 点击 / 键盘三种作答方式，32 条题库，4 大分类
    ============================================================ */
 (function (NEG) {
@@ -73,36 +74,52 @@
       /* ---------- 骨架 ---------- */
       const counts = categoryCounts(all);
       root.innerHTML =
-        ui.pageHead({
-          eyebrow: 'FACT-CHECK LAB · 事实核查',
-          icon: 'search',
-          title: '辟谣实验室',
-          lead: '读一条社交媒体谣言，从三张科普卡片中选出唯一正确的结论。拖拽、点击或键盘 <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 都可以作答。',
-          tools: '<span class="badge badge-line">题库 ' + all.length + ' 条</span>' +
-                 '<span class="badge badge-line">已答 ' + seenBefore.size + ' 条</span>'
-        }) +
-        '<div class="rumor-hud">' +
-          '<div class="chip-row" id="catChips">' +
-            ['all', 'daily', 'safety', 'frontier', 'china'].map((c) => {
-              const label = c === 'all' ? '全部' : CATS[c].name;
-              return '<button class="chip ' + (c === 'all' ? 'is-active' : '') + '" data-cat="' + c + '">' +
-                (c === 'all' ? '🌐 ' : CATS[c].icon + ' ') + U.esc(label) +
-                ' <span class="chip-count">' + (counts[c] || 0) + '</span></button>';
-            }).join('') +
+        '<div class="mode-page rumor-page">' +
+          '<header class="page-top rumor-top">' +
+            '<div class="pt-brand">' +
+              '<span class="eyebrow">FACT-CHECK LAB · 事实核查</span>' +
+              '<h2>' + NEG.icon('search') + '辟谣实验室</h2>' +
+            '</div>' +
+            '<div class="rumor-hud">' +
+              '<div class="chip-row" id="catChips">' +
+                ['all', 'daily', 'safety', 'frontier', 'china'].map((c) => {
+                  const label = c === 'all' ? '全部' : CATS[c].name;
+                  return '<button class="chip ' + (c === 'all' ? 'is-active' : '') + '" data-cat="' + c + '">' +
+                    (c === 'all' ? '🌐 ' : CATS[c].icon + ' ') + U.esc(label) +
+                    ' <span class="chip-count">' + (counts[c] || 0) + '</span></button>';
+                }).join('') +
+              '</div>' +
+            '</div>' +
+            '<div class="pt-tools">' +
+              '<span class="badge badge-line">题库 ' + all.length + ' 条</span>' +
+              '<span class="badge badge-line">已答 ' + seenBefore.size + ' 条</span>' +
+              '<button class="btn btn-quiet btn-sm" data-action="restart">' + NEG.icon('refresh', 14) + '换一组</button>' +
+            '</div>' +
+          '</header>' +
+
+          '<div class="session-strip">' +
+            '<span class="session-meta">第 <b id="qIndex">1</b> / <b id="qTotal">10</b> 题</span>' +
+            '<div class="progress"><i id="qProgress"></i></div>' +
+            '<span class="streak-badge" id="streakBadge">🔥 连对 0</span>' +
+            '<span class="session-meta">本轮 <b id="roundScore">0</b> 分</span>' +
           '</div>' +
-          '<button class="btn btn-quiet btn-sm" data-action="restart">' + NEG.icon('refresh', 14) + '换一组</button>' +
-        '</div>' +
-        '<div class="panel session-panel anim-fade-up">' +
-          '<div class="session-meta">第 <b id="qIndex">1</b> / <b id="qTotal">10</b> 题</div>' +
-          '<div class="progress"><i id="qProgress"></i></div>' +
-          '<span class="streak-badge" id="streakBadge">🔥 连对 0</span>' +
-          '<div class="session-meta">本轮 <b id="roundScore">0</b> 分</div>' +
-        '</div>' +
-        '<div class="rumor-stage" id="stage"></div>' +
-        '<div id="resultSlot"></div>';
+
+          '<div class="rumor-body">' +
+            '<div class="rumor-col rumor-col-left">' +
+              '<div class="rumor-post-slot" id="stage"></div>' +
+            '</div>' +
+            '<div class="rumor-col rumor-col-right">' +
+              '<div class="rumor-answers" id="answerCol"></div>' +
+              '<div class="dropzone answer-drop" id="dropzone">' +
+                NEG.icon('share', 16) + '<span>把正确的科普卡片拖到这里松手，也可以直接点击卡片或按 1 / 2 / 3</span>' +
+              '</div>' +
+            '</div>' +
+          '</div>' +
+        '</div>';
 
       const stage = root.querySelector('#stage');
-      const resultSlot = root.querySelector('#resultSlot');
+      const answerCol = root.querySelector('#answerCol');
+      const dropzone = root.querySelector('#dropzone');
       const qIndexEl = root.querySelector('#qIndex');
       const qTotalEl = root.querySelector('#qTotal');
       const progressEl = root.querySelector('#qProgress');
@@ -133,13 +150,12 @@
               '<span>💬 2.3 万评论</span><span>🔁 转发 8.7 万</span><span>❤️ 点赞 15 万</span>' +
             '</div>' +
             '<div class="rumer-tag">' + NEG.icon('alert', 14) + '核查提示：先想想“这是哪种辐射？剂量有多大？”再作答。</div>' +
-          '</div>' +
+          '</div>';
+
+        answerCol.innerHTML =
           '<div class="answer-head">' +
             '<h3>' + NEG.icon('target', 17) + '哪张科普卡片能驳倒它？</h3>' +
-            '<span class="answer-hint">拖到核查区，或直接点击</span>' +
-          '</div>' +
-          '<div class="dropzone answer-drop" id="dropzone">' +
-            NEG.icon('share', 16) + '<span>把正确的科普卡片拖到这里松手</span>' +
+            '<span class="answer-hint">拖到左侧核查区 / 点击 / 按 1-3</span>' +
           '</div>' +
           '<div class="answer-grid" id="answers">' +
             session.order.map((opt, i) => (
@@ -151,8 +167,9 @@
             )).join('') +
           '</div>';
 
-        resultSlot.innerHTML = '';
-        resultSlot.className = '';
+        answerCol.scrollTop = 0;
+        stage.scrollTop = 0;
+        dropzone.classList.remove('is-idle');
 
         qIndexEl.textContent = String(session.index + 1);
         qTotalEl.textContent = String(session.questions.length);
@@ -190,7 +207,7 @@
         audio.play(opt.correct ? 'correct' : 'wrong');
         U.vibrate(opt.correct ? 30 : [20, 40, 20]);
 
-        const cards = ui.qsa('.answer-card', stage);
+        const cards = ui.qsa('.answer-card', answerCol);
         cards.forEach((card, i) => {
           card.classList.add('is-locked');
           const o = session.order[i];
@@ -229,6 +246,7 @@
         roundScoreEl.textContent = String(session.earned);
         streakEl.textContent = '🔥 连对 ' + session.streak;
         streakEl.classList.toggle('is-hot', session.streak >= 3);
+        dropzone.classList.add('is-idle');
 
         renderResult(q, opt);
         ctx.achievements.checkAll();
@@ -236,7 +254,7 @@
 
       function renderResult(q, opt) {
         const delta = opt.correct ? ('+' + (10 + Math.min(session.streak, 5) * 2) + ' 分') : '-3 分';
-        resultSlot.innerHTML =
+        answerCol.innerHTML =
           '<div class="result-panel ' + (opt.correct ? 'is-success' : 'is-fail') + ' anim-fade-up">' +
             '<div class="verdict-row">' +
               '<span class="verdict-stamp ' + (opt.correct ? 'ok' : 'bad') + '">' +
@@ -268,7 +286,8 @@
             '</div>' +
           '</div>';
 
-        resultSlot.querySelector('[data-action="next"]').addEventListener('click', (e) => {
+        answerCol.scrollTop = 0;
+        answerCol.querySelector('[data-action="next"]').addEventListener('click', (e) => {
           e.stopPropagation();
           audio.play('click');
           nextQuestion();
@@ -281,8 +300,6 @@
         if (session.index + 1 >= session.questions.length) return finish();
         session.index++;
         renderQuestion();
-        const post = stage.querySelector('.post');
-        if (post) post.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
 
       function finish() {
@@ -333,8 +350,7 @@
 
       /* ---------- 拖拽 / 点击 ---------- */
       function bindAnswers() {
-        const dropzone = stage.querySelector('#dropzone');
-        const cards = ui.qsa('.answer-card', stage);
+        const cards = ui.qsa('.answer-card', answerCol);
 
         cards.forEach((card) => {
           let startX = 0, startY = 0, pointerId = null, ghost = null, dragging = false, suppressClick = false;
@@ -405,9 +421,9 @@
         });
       }
 
-      function isOverDropzone(x, y, dropzone) {
-        if (!dropzone) return false;
-        const r = dropzone.getBoundingClientRect();
+      function isOverDropzone(x, y, dropzoneEl) {
+        if (!dropzoneEl) return false;
+        const r = dropzoneEl.getBoundingClientRect();
         return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       }
 
@@ -430,6 +446,8 @@
       });
 
       /* ---------- 启动 ---------- */
+      const exitShell = NEG.shell.full('rumor');
+
       if (!all.length) {
         stage.innerHTML = '<div class="empty">题库加载失败，请刷新页面。</div>';
       } else {
@@ -442,6 +460,7 @@
         cleanupFns.forEach((fn) => { try { fn(); } catch (e) { /* noop */ } });
         cleanupFns = [];
         document.body.classList.remove('is-dragging');
+        exitShell();
       };
     }
   });

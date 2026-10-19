@@ -1,5 +1,6 @@
 /* ============================================================
    核纪元 · 首页（驾驶舱）
+   上下两屏整页翻页：第一屏主视觉，第二屏五大实验室
    ============================================================ */
 (function (NEG) {
   'use strict';
@@ -31,67 +32,36 @@
 
       const labs = tasks.list().filter((t) => t.id !== 'home');
 
-      root.innerHTML =
-        '<div class="hero anim-fade-up">' +
-          '<div class="hero-copy">' +
-            '<span class="eyebrow">INTERACTIVE NUCLEAR LAB · 交互式核能实验室</span>' +
-            '<h1>把核电站<br><span class="grad">拆开、建好、再启动</span></h1>' +
-            '<p class="hero-sub">识破 32 条辐射谣言，拼装一座压水堆，亲手把它开到满功率。' +
-              '零依赖、可离线、支持鼠标 / 触屏 / 键盘。</p>' +
-            '<div class="hero-cta">' +
-              '<button class="btn btn-primary btn-lg" data-go="rumor">' + NEG.icon('play', 17) + '开始探索</button>' +
-              '<button class="btn btn-ghost btn-lg" data-action="help">' + NEG.icon('book') + '怎么玩</button>' +
-            '</div>' +
-            '<div class="hero-stats">' +
-              '<div class="hero-stat"><b data-count="' + (state.score | 0) + '">0</b><span>累计得分</span></div>' +
-              '<div class="hero-stat"><b>' + achvCount + ' / ' + achvTotal + '</b><span>成就解锁</span></div>' +
-              '<div class="hero-stat"><b>' + stat.done + ' / ' + stat.total + '</b><span>实验室完成</span></div>' +
-              '<div class="hero-stat"><b>' + Math.round(stat.percent) + '%</b><span>综合进度</span></div>' +
-            '</div>' +
-          '</div>' +
-          '<div class="hero-visual" aria-hidden="true">' +
-            '<div class="atom-stage">' +
-              '<span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>' +
-              '<span class="orbit o1"></span><span class="orbit o2"></span><span class="orbit o3"></span>' +
-              '<div class="atom-core"></div>' +
-            '</div>' +
-            '<span class="coords">35.68°N 139.69°E<br>SYS.ONLINE / 100%</span>' +
-          '</div>' +
+      /* 第二屏：五个实验室 */
+      const labsHTML =
+        '<div class="section-head">' +
+          '<h2>五个实验室</h2>' +
+          '<span class="section-note">每个模块都能独立玩，进度自动保存</span>' +
         '</div>' +
-
-        /* 模块网格 */
-        '<section class="section-block" id="modeGrid">' +
-          '<div class="section-head">' +
-            '<h2>五个实验室</h2>' +
-            '<span class="section-note">每个模块都能独立玩，进度自动保存</span>' +
-          '</div>' +
-          '<div class="mode-grid">' +
-            labs.map((m, i) => {
-              const p = Math.round(tasks.progress(m.id, state) * 100);
-              const status = tasks.status(m.id, state);
-              const color = m.accent || '#38e1ff';
-              return (
-                '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 5) + '" data-go="' + m.id + '" ' +
-                  'style="--tile-color:' + color + ';--tile-accent:' + color + '33;--tile-icon-bg:' + color + '18;--tile-border:' + color + '3d">' +
-                  '<span class="tile-top">' +
-                    '<span class="tile-icon">' + NEG.icon(m.icon, 21) + '</span>' +
-                    '<span class="tile-arrow">' + NEG.icon('arrowRight', 18) + '</span>' +
-                  '</span>' +
-                  '<h3>' + U.esc(m.title) + '</h3>' +
-                  '<p>' + U.esc(m.blurb) + '</p>' +
-                  '<span class="tile-meta">' +
-                    '<span>' + tasks.statusLabel(status) + '</span>' +
-                    '<span>·</span>' +
-                    '<span>' + p + '%</span>' +
-                  '</span>' +
-                  '<span class="tile-progress"><i style="width:' + p + '%"></i></span>' +
-                '</button>'
-              );
-            }).join('') +
-          '</div>' +
-        '</section>' +
-
-        /* 每日一谣 + 成就 */
+        '<div class="mode-grid">' +
+          labs.map((m, i) => {
+            const p = Math.round(tasks.progress(m.id, state) * 100);
+            const status = tasks.status(m.id, state);
+            const color = m.accent || '#38e1ff';
+            return (
+              '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 5) + '" data-go="' + m.id + '" ' +
+                'style="--tile-color:' + color + ';--tile-accent:' + color + '33;--tile-icon-bg:' + color + '18;--tile-border:' + color + '3d">' +
+                '<span class="tile-top">' +
+                  '<span class="tile-icon">' + NEG.icon(m.icon, 21) + '</span>' +
+                  '<span class="tile-arrow">' + NEG.icon('arrowRight', 18) + '</span>' +
+                '</span>' +
+                '<h3>' + U.esc(m.title) + '</h3>' +
+                '<p>' + U.esc(m.blurb) + '</p>' +
+                '<span class="tile-meta">' +
+                  '<span>' + tasks.statusLabel(status) + '</span>' +
+                  '<span>·</span>' +
+                  '<span>' + p + '%</span>' +
+                '</span>' +
+                '<span class="tile-progress"><i style="width:' + p + '%"></i></span>' +
+              '</button>'
+            );
+          }).join('') +
+        '</div>' +
         '<div class="home-columns">' +
           '<section class="panel daily-card anim-fade-up d2">' +
             '<div class="daily-top">' +
@@ -143,10 +113,72 @@
             '<p class="data-note">科学依据来自 IAEA、ICRP、WHO、UNSCEAR 与中国核能行业协会公开资料；剂量为典型量级，仅用于科普。</p>' +
           '</section>' +
         '</div>' +
-
-        '<p class="center dim" style="margin-top:34px;font-size:12.5px;letter-spacing:.06em">' +
+        '<p class="center dim home-quote" style="margin-top:3px;font-size:12.5px;letter-spacing:.06em">' +
           '科学不是吓人的理由，而是不害怕的底气。' +
         '</p>';
+
+      root.innerHTML =
+        '<div class="home-pager" id="homePager">' +
+          '<div class="home-track" id="homeTrack">' +
+
+            /* ---------- 第一屏：主视觉，不出现实验室 ---------- */
+            '<section class="home-page home-page-hero" data-page="0" data-label="概览">' +
+              '<div class="hero anim-fade-up">' +
+                '<div class="hero-copy">' +
+                  '<span class="eyebrow">INTERACTIVE NUCLEAR LAB · 交互式核能实验室</span>' +
+                  '<h1>把核电站<br><span class="grad">拆开、建好、再启动</span></h1>' +
+                  '<p class="hero-sub">识破 32 条辐射谣言，拼装一座压水堆，亲手把它开到满功率。' +
+                    '零依赖、可离线、支持鼠标 / 触屏 / 键盘。</p>' +
+                  '<div class="hero-cta">' +
+                    '<button class="btn btn-primary btn-lg" data-go="rumor">' + NEG.icon('play', 17) + '开始探索</button>' +
+                    '<button class="btn btn-ghost btn-lg" data-action="help">' + NEG.icon('book') + '怎么玩</button>' +
+                  '</div>' +
+                  '<div class="hero-stats">' +
+                    '<div class="hero-stat"><b data-count="' + (state.score | 0) + '">0</b><span>累计得分</span></div>' +
+                    '<div class="hero-stat"><b>' + achvCount + ' / ' + achvTotal + '</b><span>成就解锁</span></div>' +
+                    '<div class="hero-stat"><b>' + stat.done + ' / ' + stat.total + '</b><span>实验室完成</span></div>' +
+                    '<div class="hero-stat"><b>' + Math.round(stat.percent) + '%</b><span>综合进度</span></div>' +
+                  '</div>' +
+                '</div>' +
+                '<div class="hero-visual" aria-hidden="true">' +
+                  '<div class="atom-stage">' +
+                    '<span class="ring r1"></span><span class="ring r2"></span><span class="ring r3"></span>' +
+                    '<span class="orbit o1"></span><span class="orbit o2"></span><span class="orbit o3"></span>' +
+                    '<div class="atom-core"></div>' +
+                  '</div>' +
+                  '<span class="coords">35.68°N 139.69°E<br>SYS.ONLINE / 100%</span>' +
+                '</div>' +
+                '<button class="page-hint" type="button" data-action="nextPage">' +
+                  '<span>滚动滚轮 · 看五个实验室</span>' +
+                  '<i class="hint-arrow" aria-hidden="true"></i>' +
+                '</button>' +
+              '</div>' +
+            '</section>' +
+
+            /* ---------- 第二屏：五大实验室 + 每日一谣 + 成就 ---------- */
+            '<section class="home-page home-page-labs" data-page="1" data-label="实验室">' +
+              '<div class="home-page-inner">' + labsHTML + '</div>' +
+            '</section>' +
+
+          '</div>' +
+          '<div class="pager-rail" role="tablist" aria-label="首页分屏">' +
+            '<button class="pager-dot is-active" type="button" role="tab" data-page-index="0" aria-current="true">' +
+              '<span>概览</span>' +
+            '</button>' +
+            '<button class="pager-dot" type="button" role="tab" data-page-index="1" aria-current="false">' +
+              '<span>实验室</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+
+      /* 外壳：一屏模式（≥900px 生效） */
+      const exitShell = NEG.shell.full('home');
+
+      /* 整页翻页器 */
+      const pager = NEG.pager.create({
+        el: root.querySelector('#homePager'),
+        track: root.querySelector('#homeTrack')
+      });
 
       /* 数字滚动 */
       const counter = root.querySelector('[data-count]');
@@ -165,6 +197,8 @@
           btn.addEventListener('click', () => { ctx.audio.play('click'); fn(); });
         });
       };
+
+      onAction('nextPage', () => { if (pager) pager.next(); });
 
       onAction('help', () => {
         document.getElementById('helpBtn').click();
@@ -232,7 +266,10 @@
         });
       }
 
-      return function cleanup() { /* 首页无长驻监听 */ };
+      return function cleanup() {
+        if (pager) pager.destroy();
+        exitShell();
+      };
     }
   });
 })(window.NEG);
