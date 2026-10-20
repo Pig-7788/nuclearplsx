@@ -529,3 +529,71 @@
 .console-hint kbd {
   margin: 0 2px;
 }
+
+/* 运行趋势沿用控制台的仪表配色，单一纵轴避免混淆不同量纲。 */
+.console-trends { min-width: 0; }
+.trend-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.trend-heading h3 { font-size: 16px; }
+.trend-scope { font-size: 11px; color: var(--text-2); }
+.trend-scope select {
+  display: inline-block;
+  min-height: 36px;
+  max-width: 100%;
+  margin-left: 4px;
+  padding: 4px 6px;
+  background: var(--bg-1);
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  color: var(--text);
+}
+.trend-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+.trend-metrics button {
+  text-align: left;
+  min-height: 58px;
+  padding: 8px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: transparent;
+  cursor: pointer;
+}
+.trend-metrics button:hover { background: var(--bg-2); }
+.trend-metrics button[aria-pressed="true"] { border-color: var(--trend-color); background: var(--bg-2); }
+.trend-metrics span { display: block; font-size: 11px; color: var(--text-2); }
+.trend-metrics b { display: block; color: var(--text); font: 600 13px/1.6 var(--font-mono); font-variant-numeric: tabular-nums; }
+.trend-metrics button[aria-pressed="true"] b { color: var(--trend-color); }
+.trend-legend { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; font-size: 11px; color: var(--text-2); }
+.trend-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.trend-legend span::before { content: ""; width: 16px; border-top: 2px solid var(--trend-color); }
+.trend-legend .trend-reference-key::before { border-top: 1px dashed var(--text-2); }
+.trend-plot { display: block; width: 100%; height: auto; margin-top: 8px; touch-action: pan-y; }
+.trend-axis { font-family: var(--font-mono); font-size: 12px; fill: var(--text-2); }
+.trend-gridline { stroke: var(--line); stroke-width: 1; }
+.trend-line { fill: none; stroke: var(--trend-color); stroke-width: 2; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.trend-reference-line { stroke: var(--text-2); stroke-dasharray: 5 5; }
+.trend-event { stroke: var(--red); stroke-dasharray: 2 5; }
+.trend-cursor { stroke: var(--text-2); stroke-dasharray: 2 4; opacity: 0.65; }
+.trend-point { fill: var(--trend-color); stroke: var(--panel-solid); stroke-width: 2; }
+.trend-reading { display: block; color: var(--text); font-size: 11px; min-height: 36px; }
+.trend-help, .trend-model-note, .trend-data p { color: var(--text-2); font-size: 11px; line-height: 1.7; }
+.trend-model-note { margin-top: 12px; }
+.trend-data { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
+.trend-data summary { cursor: pointer; color: var(--cyan); font-size: 12px; padding: 6px 0; }
+.trend-data .btn { margin: 8px 0; }
+.trend-table-wrap { overflow-x: auto; }
+.trend-data table { width: 100%; border-collapse: collapse; font-size: 11px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.trend-data th, .trend-data td { text-align: right; padding: 6px; border-bottom: 1px solid var(--line); }
+.trend-data th { color: var(--text-2); font-weight: 500; }
+@media (max-width: 1080px) and (min-width: 721px) {
+  .console-trends { max-width: 640px; width: 100%; align-self: center; }
+}

@@ -921,7 +921,8 @@ window.NEG = window.NEG || {};
     { id: 'china', label: '中国核电数据', src: 'assets/js/data/china.js', check: () => !!(NEG.data.china && NEG.data.china.timeline) },
     { id: 'reactor', label: '压水堆数据', src: 'assets/js/data/reactor.js', check: () => !!(NEG.data.plant && NEG.data.plant.parts && NEG.data.plant.parts.length === 12) },
     { id: 'svg', label: '工程图', src: 'assets/js/svg.js', check: () => !!(NEG.svg && typeof NEG.svg.plant === 'function') },
-    { id: 'model', label: '反应堆模型', src: 'assets/js/console-model.js', check: () => !!(NEG.ReactorModel && typeof NEG.ReactorModel.create === 'function') }
+    { id: 'model', label: '反应堆模型', src: 'assets/js/console-model.js', check: () => !!(NEG.ReactorModel && typeof NEG.ReactorModel.create === 'function') },
+    { id: 'trends', label: '运行趋势', src: 'assets/js/console-trends.js', check: () => !!(NEG.ConsoleTrends && typeof NEG.ConsoleTrends.mount === 'function') }
   ];
   let bootGuardEl = null;
   let recovering = false;

@@ -2,3 +2,4 @@ node_modules/
 .reference/
 .shots/
 .DS_Store
+tests/artifacts/
