@@ -1,0 +1,531 @@
+/* ============================================================
+   反应堆控制台（模块样式）
+   ============================================================ */
+
+/* ============================================================
+   4. 反应堆控制台
+   ============================================================ */
+.console-grid {
+  display: grid;
+  grid-template-columns: 292px minmax(0, 1fr) 316px;
+  gap: 14px;
+  align-items: start;
+}
+
+.console-col {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.console-card { padding: 16px; }
+
+.console-card h4 {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.14em;
+  color: var(--text-3);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.console-card h4 b {
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.slider-block {
+  margin-bottom: 18px;
+}
+
+.slider-block:last-child { margin-bottom: 0; }
+
+.slider-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.slider-head label {
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+
+.slider-head .slider-value {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--cyan);
+  font-variant-numeric: tabular-nums;
+}
+
+.slider-head .slider-value.warn { color: var(--amber); }
+.slider-head .slider-value.bad { color: var(--red); }
+
+.slider-scale {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9.5px;
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  margin-top: 4px;
+}
+
+.range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 24px;
+  background: transparent;
+  cursor: pointer;
+  margin: 0;
+}
+
+.range::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 99px;
+  background:
+    linear-gradient(90deg, rgba(56, 225, 255, 0.5) var(--fill, 50%), rgba(120, 190, 255, 0.12) var(--fill, 50%));
+  border: 1px solid rgba(120, 190, 255, 0.14);
+}
+
+.range::-moz-range-track {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(120, 190, 255, 0.12);
+}
+
+.range::-moz-range-progress {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(56, 225, 255, 0.5);
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  margin-top: -7px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff, var(--cyan) 60%, #0d7f9c);
+  border: 2px solid #04202c;
+  box-shadow: 0 0 12px rgba(56, 225, 255, 0.55);
+  cursor: grab;
+}
+
+.range::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--cyan);
+  border: 2px solid #04202c;
+  box-shadow: 0 0 12px rgba(56, 225, 255, 0.55);
+  cursor: grab;
+}
+
+.range:active::-webkit-slider-thumb { cursor: grabbing; }
+
+.range.is-danger::-webkit-slider-runnable-track {
+  background:
+    linear-gradient(90deg, rgba(255, 107, 107, 0.55) var(--fill, 50%), rgba(120, 190, 255, 0.12) var(--fill, 50%));
+}
+
+.btn-scram {
+  width: 100%;
+  padding: 15px;
+  border-radius: 13px;
+  border: 1px solid rgba(255, 107, 107, 0.5);
+  background:
+    repeating-linear-gradient(135deg, rgba(255, 107, 107, 0.07) 0 10px, rgba(255, 107, 107, 0.14) 10px 20px),
+    linear-gradient(160deg, rgba(70, 20, 24, 0.9), rgba(34, 8, 10, 0.9));
+  color: #ffd6d6;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.btn-scram:hover {
+  border-color: var(--red);
+  background: linear-gradient(160deg, rgba(110, 26, 30, 0.95), rgba(44, 10, 12, 0.95));
+  box-shadow: 0 0 28px rgba(255, 107, 107, 0.22);
+}
+
+.btn-scram:active { transform: scale(0.985); }
+.btn-scram[disabled] { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+
+/* 核心可视化 */
+.core-stage {
+  position: relative;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.core-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(340px 220px at 50% 42%, rgba(56, 225, 255, 0.08), transparent 70%);
+  pointer-events: none;
+}
+
+.core-svg {
+  width: 100%;
+  height: auto;
+  max-height: 360px;
+  display: block;
+  position: relative;
+  z-index: 1;
+}
+
+.core-svg .fuel-rod {
+  transition: fill 0.5s, filter 0.5s;
+}
+
+.core-svg .coolant-flow {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 3 13;
+  animation: dashFlow 3s linear infinite;
+  opacity: 0.6;
+}
+
+.core-svg .rod-bank {
+  transition: transform 0.45s var(--ease-out);
+}
+
+.core-svg .core-halo {
+  transition: opacity 0.6s;
+  animation: pulseGlow 3.4s ease-in-out infinite;
+}
+
+.reactor-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 11px;
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.045);
+  font-size: 12px;
+  color: var(--text-2);
+  flex-wrap: wrap;
+}
+
+.reactor-banner b { color: var(--text); }
+.reactor-banner .status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 10px var(--green);
+  animation: pulseGlow 2s ease-in-out infinite;
+}
+
+.reactor-banner.is-scram { border-color: rgba(255, 200, 87, 0.35); background: rgba(255, 200, 87, 0.06); }
+.reactor-banner.is-scram .status-dot { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+.reactor-banner.is-dead { border-color: rgba(255, 107, 107, 0.4); background: rgba(255, 107, 107, 0.07); }
+.reactor-banner.is-dead .status-dot { background: var(--red); box-shadow: 0 0 10px var(--red); }
+
+/* 仪表 */
+.gauge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.gauge {
+  position: relative;
+  padding: 10px 8px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.gauge svg {
+  width: 100%;
+  max-width: 118px;
+  height: auto;
+  display: block;
+}
+
+.gauge .gauge-arc-bg {
+  fill: none;
+  stroke: rgba(120, 190, 255, 0.14);
+  stroke-width: 7;
+  stroke-linecap: round;
+}
+
+.gauge .gauge-arc-fill {
+  fill: none;
+  stroke: var(--cyan);
+  stroke-width: 7;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.3s linear, stroke 0.4s;
+  filter: drop-shadow(0 0 6px rgba(56, 225, 255, 0.4));
+}
+
+.gauge .gauge-value {
+  position: absolute;
+  top: 46%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-mono);
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: center;
+}
+
+.gauge .gauge-value small {
+  display: block;
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--text-3);
+  margin-top: 3px;
+  letter-spacing: 0.05em;
+  font-family: var(--font-sans);
+}
+
+.gauge .gauge-label {
+  font-size: 10px;
+  color: var(--text-3);
+  letter-spacing: 0.04em;
+  margin-top: -4px;
+}
+
+.gauge.is-warn .gauge-arc-fill { stroke: var(--amber); }
+.gauge.is-bad .gauge-arc-fill { stroke: var(--red); }
+.gauge.is-warn .gauge-value { color: var(--amber); }
+.gauge.is-bad .gauge-value { color: var(--red); }
+
+.readout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.readout {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.03);
+}
+
+.readout span {
+  font-size: 9.5px;
+  color: var(--text-3);
+  letter-spacing: 0.06em;
+}
+
+.readout b {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.readout b small {
+  font-size: 9px;
+  color: var(--text-3);
+  margin-left: 2px;
+  font-family: var(--font-sans);
+}
+
+.readout.is-warn b { color: var(--amber); }
+.readout.is-bad b { color: var(--red); }
+
+/* 任务 & 日志 */
+.mission-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mission-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+.mission-step .ms-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: grid;
+  place-items: center;
+  font-size: 8px;
+  color: transparent;
+}
+
+.mission-step.is-done { color: var(--text-2); }
+.mission-step.is-done .ms-dot {
+  background: var(--green-soft);
+  border-color: rgba(62, 240, 162, 0.45);
+  color: var(--green);
+}
+
+.mission-step.is-active { color: var(--cyan); }
+.mission-step.is-active .ms-dot {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(56, 225, 255, 0.12);
+}
+
+.event-log {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 172px;
+  overflow-y: auto;
+  font-size: 11.5px;
+}
+
+.log-item {
+  display: flex;
+  gap: 8px;
+  color: var(--text-2);
+  line-height: 1.5;
+  animation: fadeUp 0.3s ease both;
+}
+
+.log-item .log-time {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-3);
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.log-item.is-warn { color: var(--amber); }
+.log-item.is-bad { color: var(--red); }
+.log-item.is-good { color: var(--green); }
+
+.console-hint {
+  font-size: 11px;
+  color: var(--text-3);
+  line-height: 1.6;
+}
+
+/* ---------- 控制台响应式 ---------- */
+@media (max-width: 1180px) {
+  .console-grid {
+    grid-template-columns: 260px minmax(0, 1fr) 290px;
+  }
+}
+
+@media (max-width: 1080px) {
+  .console-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .console-grid .console-col.center-col {
+    grid-column: 1 / -1;
+    order: -1;
+  }
+
+  .console-grid .center-col .core-stage {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 720px) {
+  .console-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .gauge-grid { gap: 6px; }
+  .gauge .gauge-value { font-size: 14px; }
+}
+
+/* ---------- 控制台补充 ---------- */
+.rho-card {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(120, 190, 255, 0.03);
+}
+
+.rho-bar {
+  position: relative;
+  height: 8px;
+  margin: 10px 0 4px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, rgba(56, 225, 255, 0.28), rgba(120, 190, 255, 0.08) 50%, rgba(255, 200, 87, 0.28));
+  border: 1px solid rgba(120, 190, 255, 0.12);
+}
+
+.rho-bar .rho-center {
+  position: absolute;
+  left: 50%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.rho-bar i {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--green);
+  box-shadow: 0 0 12px currentColor;
+  transition: left 0.12s linear, background 0.2s;
+}
+
+.reactor-banner.is-complete {
+  border-color: rgba(62, 240, 162, 0.45);
+  background: rgba(62, 240, 162, 0.06);
+}
+
+.alarm-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--cyan);
+}
+
+.reactor-banner.is-dead .alarm-icon { color: var(--red); }
+.reactor-banner.is-scram .alarm-icon { color: var(--amber); }
+
+.core-stage .reactor-banner {
+  position: relative;
+  z-index: 2;
+}
+
+.console-hint kbd {
+  margin: 0 2px;
+}

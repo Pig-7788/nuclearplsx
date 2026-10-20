@@ -1,0 +1,371 @@
+/* ============================================================
+   中国核电（模块样式）
+   ============================================================ */
+
+/* ============================================================
+   6. 中国核电
+   ============================================================ */
+.china-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.china-stat {
+  padding: 16px 18px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(14, 32, 56, 0.7), rgba(7, 16, 30, 0.8));
+  position: relative;
+  overflow: hidden;
+}
+
+.china-stat::after {
+  content: "";
+  position: absolute;
+  right: -24px;
+  bottom: -34px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 225, 255, 0.14), transparent 70%);
+}
+
+.china-stat b {
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  font-family: var(--font-mono);
+  font-size: clamp(24px, 3vw, 32px);
+  font-weight: 800;
+  color: var(--text);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.china-stat b small {
+  font-size: 11px;
+  color: var(--cyan);
+  font-family: var(--font-sans);
+  font-weight: 600;
+}
+
+.china-stat span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--text-2);
+  margin-top: 6px;
+}
+
+.china-stat em {
+  display: block;
+  font-style: normal;
+  font-size: 9.5px;
+  color: var(--text-3);
+  margin-top: 2px;
+  font-family: var(--font-mono);
+}
+
+.china-section {
+  margin-bottom: 26px;
+}
+
+.china-section > h2 {
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+}
+
+.china-section > h2 svg {
+  width: 18px;
+  height: 18px;
+  color: var(--cyan);
+}
+
+/* 时间线 */
+.timeline {
+  position: relative;
+  padding: 10px 0 4px;
+}
+
+.timeline::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: linear-gradient(180deg, transparent, var(--line-2) 8%, var(--line-2) 92%, transparent);
+  transform: translateX(-50%);
+}
+
+.timeline-item {
+  position: relative;
+  width: 50%;
+  padding: 0 34px 22px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.timeline-item:nth-child(even) {
+  margin-left: 50%;
+  padding: 0 0 22px 34px;
+  align-items: flex-start;
+}
+
+.timeline-item .tl-dot {
+  position: absolute;
+  top: 8px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--bg-0);
+  border: 2px solid var(--cyan);
+  box-shadow: 0 0 10px rgba(56, 225, 255, 0.5);
+  z-index: 2;
+}
+
+.timeline-item:nth-child(even) .tl-dot {
+  right: auto;
+  left: -5px;
+}
+
+.timeline-item.is-new .tl-dot {
+  border-color: var(--green);
+  box-shadow: 0 0 14px rgba(62, 240, 162, 0.7);
+}
+
+.tl-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 14px 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(13, 29, 52, 0.78), rgba(7, 15, 28, 0.85));
+  transition: border-color 0.25s, transform 0.25s;
+}
+
+.tl-card:hover {
+  border-color: var(--line-2);
+  transform: translateY(-2px);
+}
+
+.tl-year {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--cyan);
+  letter-spacing: 0.06em;
+}
+
+.tl-year .tl-tag {
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 1px 7px;
+  border-radius: 5px;
+  background: rgba(56, 225, 255, 0.1);
+  color: var(--cyan);
+  letter-spacing: 0.04em;
+}
+
+.tl-card h3 {
+  font-size: 14.5px;
+  margin: 5px 0 4px;
+}
+
+.tl-card p {
+  font-size: 12px;
+  line-height: 1.65;
+  color: var(--text-2);
+}
+
+/* 堆型卡 */
+.reactor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+.reactor-card {
+  padding: 18px;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--line);
+  background: linear-gradient(160deg, rgba(14, 31, 55, 0.76), rgba(7, 16, 30, 0.84));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.25s, transform 0.25s;
+}
+
+.reactor-card:hover {
+  border-color: var(--line-2);
+  transform: translateY(-2px);
+}
+
+.reactor-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.reactor-head h3 {
+  font-size: 17px;
+}
+
+.reactor-head .r-sub {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.reactor-power {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--green);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.reactor-power small {
+  display: block;
+  font-family: var(--font-sans);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--text-3);
+}
+
+.reactor-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.reactor-card li {
+  position: relative;
+  padding-left: 15px;
+  font-size: 12px;
+  color: var(--text-2);
+  line-height: 1.55;
+}
+
+.reactor-card li::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 8px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan);
+  opacity: 0.6;
+}
+
+.reactor-card .r-note {
+  font-size: 11px;
+  color: var(--text-3);
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+  margin-top: auto;
+  line-height: 1.55;
+}
+
+/* 电站卡 */
+.plant-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(206px, 1fr));
+  gap: 9px;
+}
+
+.plant-card {
+  padding: 13px 15px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  background: rgba(120, 190, 255, 0.03);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.plant-card:hover {
+  border-color: var(--line-2);
+  background: rgba(120, 190, 255, 0.055);
+}
+
+.plant-card .pc-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.plant-card b { font-size: 13px; }
+
+.plant-card .pc-province {
+  font-size: 9.5px;
+  padding: 1px 7px;
+  border-radius: 4px;
+  background: rgba(62, 240, 162, 0.09);
+  color: var(--green);
+  border: 1px solid rgba(62, 240, 162, 0.18);
+  font-family: var(--font-mono);
+}
+
+.plant-card .pc-units {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
+.plant-card p {
+  font-size: 10.5px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+
+/* ---------- 中国核电响应式 ---------- */
+@media (max-width: 1080px) {
+  .china-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 860px) {
+  .timeline::before { left: 7px; }
+
+  .timeline-item,
+  .timeline-item:nth-child(even) {
+    width: 100%;
+    margin-left: 0;
+    padding: 0 0 18px 26px;
+    align-items: flex-start;
+  }
+
+  .timeline-item .tl-dot,
+  .timeline-item:nth-child(even) .tl-dot {
+    left: 2px;
+    right: auto;
+  }
+
+  .tl-card { max-width: none; }
+}
+
+@media (max-width: 560px) {
+  .china-stats { grid-template-columns: 1fr 1fr; }
+}
