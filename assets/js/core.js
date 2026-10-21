@@ -10,7 +10,7 @@ window.NEG = window.NEG || {};
   'use strict';
 
   NEG.data = NEG.data || {};
-  NEG.version = '1.1.0';
+  NEG.version = '1.2.0';
 
   /* ==========================================================
      1. 图标库
@@ -49,7 +49,8 @@ window.NEG = window.NEG || {};
     scan: '<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8"/><path d="M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8"/><path d="M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16"/><path d="M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><ellipse cx="12" cy="12" rx="6.2" ry="4.2" transform="rotate(-24 12 12)"/><circle cx="12" cy="12" r="2.1"/>',
     unfold: '<path d="M8 3H3v5"/><path d="m3 3 6 6"/><path d="M16 21h5v-5"/><path d="m21 21-6-6"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M21 8V3h-5"/><path d="m21 3-6 6"/>',
     tag: '<path d="M4.2 5.2h8.1l7.5 7.5-7.1 7.1-7.5-7.5V5.2Z"/><circle cx="8.6" cy="9.6" r="1.25"/>',
-    orbit: '<circle cx="12" cy="12" r="2.1"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(-28 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(32 12 12)"/>'
+    orbit: '<circle cx="12" cy="12" r="2.1"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(-28 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(32 12 12)"/>',
+    vault: '<ellipse cx="12" cy="5.3" rx="7" ry="2.8"/><path d="M5 5.3v13.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V5.3"/><path d="M5 11.8c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8"/><path d="M9.2 8.8v6.2M14.8 8.8v6.2"/>'
   };
 
   NEG.icon = function (name, size) {
@@ -163,7 +164,8 @@ window.NEG = window.NEG || {};
         console: { plays: 0, completed: 0, bestEnergy: 0, bestSafety: 0 },
         dose: { plays: 0, viewed: [] },
         china: { plays: 0, viewed: [] },
-        device: { plays: 0, exploded: 0, viewed: [] }
+        device: { plays: 0, exploded: 0, viewed: [] },
+        repository: { plays: 0, exploded: 0, viewed: [] }
       },
       achievements: {},
       flags: {},
@@ -206,6 +208,8 @@ window.NEG = window.NEG || {};
           d.modes.china.viewed = Array.isArray(d.modes.china.viewed) ? d.modes.china.viewed : [];
           if (!d.modes.device || typeof d.modes.device !== 'object') d.modes.device = { plays: 0, exploded: 0, viewed: [] };
           d.modes.device.viewed = Array.isArray(d.modes.device.viewed) ? d.modes.device.viewed : [];
+          if (!d.modes.repository || typeof d.modes.repository !== 'object') d.modes.repository = { plays: 0, exploded: 0, viewed: [] };
+          d.modes.repository.viewed = Array.isArray(d.modes.repository.viewed) ? d.modes.repository.viewed : [];
         }
       }
     } catch (e) { /* 隐私模式 / file:// 限制时静默降级 */ }
@@ -539,13 +543,14 @@ window.NEG = window.NEG || {};
      6. 成就系统
      ========================================================== */
   const ACHIEVEMENTS = [
-    { id: 'first_steps', title: '初次临界', desc: '进入任意一个实验室模块', icon: 'bolt', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'device'].some((k) => (s.modes[k] || {}).plays > 0) },
+    { id: 'first_steps', title: '初次临界', desc: '进入任意一个实验室模块', icon: 'bolt', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'device', 'repository'].some((k) => (s.modes[k] || {}).plays > 0) },
     { id: 'debunk_10', title: '火眼金睛', desc: '累计答对 10 条谣言', icon: 'search', check: (s) => (s.modes.rumor.correct || 0) >= 10 },
     { id: 'debunk_perfect', title: '零误判', desc: '单组辟谣全部答对', icon: 'check', check: (s) => !!s.flags.perfectSession },
     { id: 'streak_5', title: '连胜五题', desc: '辟谣连续答对 5 题', icon: 'bolt', check: (s) => (s.flags.bestStreak || 0) >= 5 },
     { id: 'debunk_all', title: '题库猎手', desc: '答遍全部 32 条谣言', icon: 'trophy', check: (s) => (s.modes.rumor.seen || []).length >= 32 },
     { id: 'plant_built', title: '总工程师', desc: '建成一座完整的压水堆', icon: 'build', check: (s) => (s.modes.city.completed || 0) >= 1 },
     { id: 'device_surgeon', title: '结构解剖师', desc: '将核装置完整拆解到核心', icon: 'scan', check: (s) => (s.modes.device.exploded || 0) >= 1 },
+    { id: 'barrier_guard', title: '屏障守护者', desc: '拆解高放废物的五重屏障', icon: 'vault', check: (s) => (s.modes.repository.exploded || 0) >= 1 },
     { id: 'steady_run', title: '金牌运行员', desc: '完成 12 小时并网发电任务', icon: 'gauge', check: (s) => (s.modes.console.completed || 0) >= 1 },
     { id: 'no_scram', title: '稳如磐石', desc: '零停堆完成一次运行任务', icon: 'shield', check: (s) => !!s.flags.noScramRun },
     { id: 'dose_explorer', title: '剂量雷达', desc: '查看 20 种辐射剂量', icon: 'info', check: (s) => (s.modes.dose.viewed || []).length >= 20 },
@@ -553,7 +558,7 @@ window.NEG = window.NEG || {};
       const total = (NEG.data.china && NEG.data.china.timeline || []).length;
       return total > 0 && (s.modes.china.viewed || []).length >= total;
     } },
-    { id: 'explorer', title: '全栈体验', desc: '体验全部 6 个实验室', icon: 'home', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'device'].every((k) => (s.modes[k] || {}).plays > 0) },
+    { id: 'explorer', title: '全栈体验', desc: '体验全部 7 个实验室', icon: 'home', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'device', 'repository'].every((k) => (s.modes[k] || {}).plays > 0) },
     { id: 'score_1000', title: '千分达成', desc: '累计得分达到 1000', icon: 'trophy', check: (s) => Math.max(s.score || 0, s.bestScore || 0) >= 1000 },
     { id: 'daily_truth', title: '每日一谣', desc: '揭晓今日谣言的真相', icon: 'book', check: (s) => !!s.flags.dailyDone }
   ];
@@ -860,12 +865,13 @@ window.NEG = window.NEG || {};
      ========================================================== */
   const NAV_LABELS = {
     home: '首页',
-    rumor: '辟谣实验室',
-    city: '核电站建造',
-    console: '反应堆控制台',
-    dose: '剂量实验室',
+    rumor: '辟谣',
+    city: '建造',
+    console: '控制台',
+    dose: '剂量',
     china: '中国核电',
-    device: '核装置解剖'
+    device: '装置解剖',
+    repository: '地质处置'
   };
 
   NEG.updateHeader = function () {
@@ -911,10 +917,11 @@ window.NEG = window.NEG || {};
   /* ==========================================================
      启动自检 / 资源恢复
      ========================================================== */
-  const REQUIRED_MODES = ['home', 'rumor', 'city', 'console', 'dose', 'china', 'device'];
+  const REQUIRED_MODES = ['home', 'rumor', 'city', 'console', 'dose', 'china', 'device', 'repository'];
   const MODE_TITLES = {
     home: '首页', rumor: '辟谣实验室', city: '核电站建造',
-    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电', device: '核装置解剖室'
+    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电',
+    device: '核装置解剖室', repository: '深地质处置'
   };
   const MODE_SRCS = {
     home: 'assets/js/modes/home.js',
@@ -923,7 +930,8 @@ window.NEG = window.NEG || {};
     console: 'assets/js/modes/console.js',
     dose: 'assets/js/modes/dose.js',
     china: 'assets/js/modes/china.js',
-    device: 'assets/js/modes/device.js'
+    device: 'assets/js/modes/device.js',
+    repository: 'assets/js/modes/repository.js'
   };
   const DATA_RES = [
     { id: 'rumors', label: '辟谣题库', src: 'assets/js/data/rumors.js', check: () => Array.isArray(NEG.data.rumors) && NEG.data.rumors.length > 0 },
@@ -934,6 +942,7 @@ window.NEG = window.NEG || {};
     { id: 'model', label: '反应堆模型', src: 'assets/js/console-model.js', check: () => !!(NEG.ReactorModel && typeof NEG.ReactorModel.create === 'function') },
     { id: 'trends', label: '运行趋势', src: 'assets/js/console-trends.js', check: () => !!(NEG.ConsoleTrends && typeof NEG.ConsoleTrends.mount === 'function') },
     { id: 'device', label: '核装置结构数据', src: 'assets/js/data/device.js', check: () => !!(NEG.data.device && NEG.data.device.parts && NEG.data.device.parts.length === 7) },
+    { id: 'repository', label: '深地质处置数据', src: 'assets/js/data/repository.js', check: () => !!(NEG.data.repository && NEG.data.repository.parts && NEG.data.repository.parts.length === 5) },
     { id: 'three', label: '3D 渲染引擎', src: 'assets/vendor/three.min.js', check: () => !!(window.THREE && typeof THREE.WebGLRenderer === 'function') }
   ];
   let bootGuardEl = null;
@@ -1044,17 +1053,18 @@ window.NEG = window.NEG || {};
   function helpContent() {
     return (
       '<p>「核纪元」是一座可以亲手拆解、建造、运行的核能科普实验室。所有内容基于 IAEA、ICRP、WHO、UNSCEAR 等机构的公开资料整理。</p>' +
-      '<h3>六个实验室</h3>' +
+      '<h3>七个实验室</h3>' +
       '<p><strong>🔍 辟谣实验室</strong>：判断社交媒体上的辐射谣言，查看事实核查与权威来源。<br>' +
       '<strong>🏗️ 核电站建造</strong>：按工程顺序拼装压水堆，观察一、二、三回路如何传递热量。<br>' +
       '<strong>⚡ 反应堆控制台</strong>：调节控制棒、主泵与汽轮机组，在 12 小时班次中稳定发电。<br>' +
       '<strong>📊 剂量实验室</strong>：对数刻度对比 20+ 种辐射剂量，理解「多少剂量有风险」。<br>' +
       '<strong>🇨🇳 中国核电</strong>：从秦山一期到华龙一号、玲龙一号与「人造太阳」的里程碑。<br>' +
-      '<strong>🧩 核装置解剖室</strong>：在 3D 场景中旋转、缩放并逐层拆开一枚 1945 年内爆式核装置，理解外壳、起爆阵列、透镜、推层、反射层、核心与引发器。</p>' +
+      '<strong>🧩 核装置解剖室</strong>：在 3D 场景中旋转、缩放并逐层拆开一枚 1945 年内爆式核装置，理解外壳、起爆阵列、透镜、推层、反射层、核心与引发器。<br>' +
+      '<strong>🪨 深地质处置</strong>：下潜到 500 米深的地质剖面，拆开玻璃固化体、金属包容体、膨润土、回填层与天然岩体，理解高放废物的多重屏障。</p>' +
       '<h3>操作方式</h3>' +
-      '<p>支持鼠标、触屏与键盘。辟谣题可用 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 选择答案，<kbd>Enter</kbd> 继续；建造与控制台可直接拖拽或点击。3D 解剖室可拖拽旋转、滚轮缩放，按 <kbd>D</kbd> 一键拆解、<kbd>R</kbd> 复位视角。</p>' +
+      '<p>支持鼠标、触屏与键盘。辟谣题可用 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 选择答案，<kbd>Enter</kbd> 继续；建造与控制台可直接拖拽或点击。3D 场景可拖拽旋转、滚轮缩放，按 <kbd>D</kbd> 拆解核装置，按 <kbd>E</kbd> 拆解地质屏障，<kbd>R</kbd> 复位视角。</p>' +
       '<h3>快捷键</h3>' +
-      '<p><kbd>Esc</kbd> 关闭弹窗 · <kbd>?</kbd> 打开本说明 · 数字键在题目中作答 · 3D 场景中 <kbd>D</kbd> 拆解 / <kbd>R</kbd> 复位 / <kbd>L</kbd> 标注</p>' +
+      '<p><kbd>Esc</kbd> 关闭弹窗 · <kbd>?</kbd> 打开本说明 · 数字键在题目中作答 · 3D 场景中 <kbd>D</kbd> / <kbd>E</kbd> 拆解，<kbd>R</kbd> 复位，<kbd>L</kbd> 标注</p>' +
       '<h3>数据与免责声明</h3>' +
       '<p class="dim" style="font-size:12px">本项目为科普教育作品，不构成医疗建议或专业辐射防护指导。剂量数值为公开资料中的典型量级，个体与实际场景可能存在差异；中国核电数据以文中标注年份为准。若发现内容错误，欢迎指正。</p>' +
       '<h3>技术</h3>' +

@@ -150,7 +150,7 @@
                   '<span class="coords">35.68°N 139.69°E<br>SYS.ONLINE / 100%</span>' +
                 '</div>' +
                 '<button class="page-hint" type="button" data-action="nextPage">' +
-                  '<span>滚动滚轮 · 看六个实验室</span>' +
+                  '<span>滚动滚轮 · 看七个实验室</span>' +
                   '<i class="hint-arrow" aria-hidden="true"></i>' +
                 '</button>' +
               '</div>' +

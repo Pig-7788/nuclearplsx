@@ -55,7 +55,8 @@ async function noOverflow(page, name) {
     await page.clock.install();
     await page.goto(url);
     await page.waitForSelector('.home-pager');
-    assert.equal(await page.evaluate(() => NEG.tasks.ids().length), 7);
+    assert.equal(await page.evaluate(() => NEG.tasks.ids().length), 8);
+    assert.equal(await page.locator('.mode-tile').count(), 7);
     await page.evaluate(() => {
       const create = NEG.ReactorModel.create;
       NEG.ReactorModel.create = (...args) => {
@@ -183,6 +184,10 @@ async function noOverflow(page, name) {
       await page.clock.runFor(300);
       await noOverflow(page, 'device no horizontal overflow at ' + width);
       if (width === 390) await capture(page, 'device-mobile', '#deviceStage');
+      await route(page, 'repository', '#repoStage');
+      await page.clock.runFor(300);
+      await noOverflow(page, 'repository no horizontal overflow at ' + width);
+      if (width === 390) await capture(page, 'repository-mobile', '#repoStage');
       await route(page, 'dose', '#annualDoseForm');
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
@@ -215,12 +220,43 @@ async function noOverflow(page, name) {
     await page.locator('.overlay .modal-close').click();
     await capture(page, 'device-desktop', '#deviceStage');
     ok('3D device: seven layers, pick, explode / assemble, slider, sources and keyboard');
-    for (const [id, selector] of [['home', '.home-pager'], ['rumor', '.answer-card'], ['city', '.plant-svg'], ['china', '.china-viewport'], ['dose', '#doseRows'], ['console', '#consoleTrend'], ['device', '#deviceStage']]) {
+
+    await route(page, 'repository', '#repoStage');
+    assert.equal(await page.locator('.ri-item').count(), 5);
+    assert.equal(await page.locator('.repo-label').count(), 5);
+    assert.equal(await page.locator('#repoDetailName').textContent(), '天然岩体');
+    await page.locator('[data-part="glass"]').click();
+    assert.equal(await page.locator('#repoDetailName').textContent(), '玻璃固化体');
+    await page.locator('#repoExplodeBtn').click();
+    await page.clock.runFor(2400);
+    assert.equal(await page.locator('#repoExplodeValue').textContent(), '100%');
+    assert.equal(await page.locator('#repoState').textContent(), 'DISSECTED');
+    assert.match(await page.locator('#repoExplodeBtn').textContent(), /组装屏障/);
+    assert.ok(await page.evaluate(() => (NEG.store.get().modes.repository.exploded || 0) >= 1));
+    await page.locator('[data-view="wide"]').click();
+    await page.clock.runFor(300);
+    assert.equal(await page.locator('#repoExplodeValue').textContent(), '0%');
+    await page.locator('[data-view="barrier"]').click();
+    assert.equal(await page.locator('[data-view="barrier"]').getAttribute('aria-selected'), 'true');
+    await page.keyboard.press('e');
+    await page.clock.runFor(2400);
+    assert.equal(await page.locator('#repoExplodeValue').textContent(), '100%');
+    await page.keyboard.press('e');
+    await page.clock.runFor(2400);
+    assert.equal(await page.locator('#repoExplodeValue').textContent(), '0%');
+    await page.locator('.repo-detail [data-action="sources"]').click();
+    await page.waitForSelector('.overlay .modal');
+    assert.match(await page.locator('.overlay .modal-title').textContent(), /深地质处置/);
+    await page.locator('.overlay .modal-close').click();
+    await capture(page, 'repository-desktop', '#repoStage');
+    ok('3D repository: five barriers, mode switch, explode / assemble, sources and keyboard');
+    for (const [id, selector] of [['home', '.home-pager'], ['rumor', '.answer-card'], ['city', '.plant-svg'], ['china', '.china-viewport'], ['dose', '#doseRows'], ['console', '#consoleTrend'], ['device', '#deviceStage'], ['repository', '#repoStage']]) {
       await route(page, id, selector);
       if (['dose', 'console'].includes(id)) assert.ok(!(await page.locator('body').getAttribute('class') || '').includes('mode-full-'));
       if (id === 'device') assert.ok((await page.locator('body').getAttribute('class') || '').includes('mode-full-device'));
+      if (id === 'repository') assert.ok((await page.locator('body').getAttribute('class') || '').includes('mode-full-repository'));
     }
-    ok('all seven routes work with latest upstream full-page shell');
+    ok('all eight routes work with latest upstream full-page shell');
     await page.goto('file://' + path.join(base, 'index.html') + '#/dose');
     await page.waitForSelector('#annualDoseForm');
     await page.fill('#annual-head-ct', '1');
@@ -228,6 +264,8 @@ async function noOverflow(page, name) {
     await route(page, 'console', '#consoleTrend');
     await route(page, 'device', '#deviceStage');
     assert.equal(await page.locator('#deviceCanvas').count(), 1);
+    await route(page, 'repository', '#repoStage');
+    assert.equal(await page.locator('#repoCanvas').count(), 1);
     ok('file:// standalone launch supports new modules and local 3D');
 
     const retryPage = await browser.newPage();
