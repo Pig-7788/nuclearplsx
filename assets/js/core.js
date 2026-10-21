@@ -10,7 +10,7 @@ window.NEG = window.NEG || {};
   'use strict';
 
   NEG.data = NEG.data || {};
-  NEG.version = '1.0.0';
+  NEG.version = '1.2.0';
 
   /* ==========================================================
      1. 图标库
@@ -45,7 +45,11 @@ window.NEG = window.NEG || {};
     alert: '<path d="M12 3.5 22 20.5H2L12 3.5Z"/><path d="M12 9.5v4.6"/><circle cx="12" cy="17.4" r="0.9" fill="currentColor" stroke="none"/>',
     trend: '<path d="M3 17.5 9 11l3.6 3.6L21 6.5"/><path d="M15 6.5h6v6"/>',
     target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.6"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/>',
-    sparkles: '<path d="M12 3.5 13.6 8.4 18.5 10l-4.9 1.6L12 16.5l-1.6-4.9L5.5 10l4.9-1.6L12 3.5Z"/><path d="M18.5 15.5 19.2 17.8 21.5 18.5 19.2 19.2 18.5 21.5 17.8 19.2 15.5 18.5 17.8 17.8 18.5 15.5Z"/>'
+    sparkles: '<path d="M12 3.5 13.6 8.4 18.5 10l-4.9 1.6L12 16.5l-1.6-4.9L5.5 10l4.9-1.6L12 3.5Z"/><path d="M18.5 15.5 19.2 17.8 21.5 18.5 19.2 19.2 18.5 21.5 17.8 19.2 15.5 18.5 17.8 17.8 18.5 15.5Z"/>',
+    unfold: '<path d="M8 3H3v5"/><path d="m3 3 6 6"/><path d="M16 21h5v-5"/><path d="m21 21-6-6"/><path d="M3 16v5h5"/><path d="m3 21 6-6"/><path d="M21 8V3h-5"/><path d="m21 3-6 6"/>',
+    tag: '<path d="M4.2 5.2h8.1l7.5 7.5-7.1 7.1-7.5-7.5V5.2Z"/><circle cx="8.6" cy="9.6" r="1.25"/>',
+    orbit: '<circle cx="12" cy="12" r="2.1"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(-28 12 12)"/><ellipse cx="12" cy="12" rx="9" ry="4.2" transform="rotate(32 12 12)"/>',
+    vault: '<ellipse cx="12" cy="5.3" rx="7" ry="2.8"/><path d="M5 5.3v13.4c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8V5.3"/><path d="M5 11.8c0 1.55 3.13 2.8 7 2.8s7-1.25 7-2.8"/><path d="M9.2 8.8v6.2M14.8 8.8v6.2"/>'
   };
 
   NEG.icon = function (name, size) {
@@ -169,7 +173,8 @@ window.NEG = window.NEG || {};
         city: { plays: 0, completed: 0, bestSteps: 0 },
         console: { plays: 0, completed: 0, bestEnergy: 0, bestSafety: 0 },
         dose: { plays: 0, viewed: [] },
-        china: { plays: 0, viewed: [] }
+        china: { plays: 0, viewed: [] },
+        repository: { plays: 0, exploded: 0, viewed: [] }
       },
       achievements: {},
       flags: {},
@@ -210,6 +215,8 @@ window.NEG = window.NEG || {};
           d.modes.rumor.seen = Array.isArray(d.modes.rumor.seen) ? d.modes.rumor.seen : [];
           d.modes.dose.viewed = Array.isArray(d.modes.dose.viewed) ? d.modes.dose.viewed : [];
           d.modes.china.viewed = Array.isArray(d.modes.china.viewed) ? d.modes.china.viewed : [];
+          if (!d.modes.repository || typeof d.modes.repository !== 'object') d.modes.repository = { plays: 0, exploded: 0, viewed: [] };
+          d.modes.repository.viewed = Array.isArray(d.modes.repository.viewed) ? d.modes.repository.viewed : [];
         }
       }
     } catch (e) { /* 隐私模式 / file:// 限制时静默降级 */ }
@@ -543,12 +550,13 @@ window.NEG = window.NEG || {};
      6. 成就系统
      ========================================================== */
   const ACHIEVEMENTS = [
-    { id: 'first_steps', title: '初次临界', desc: '进入任意一个实验室模块', icon: 'bolt', check: (s) => ['rumor', 'city', 'console', 'dose', 'china'].some((k) => (s.modes[k] || {}).plays > 0) },
+    { id: 'first_steps', title: '初次临界', desc: '进入任意一个实验室模块', icon: 'bolt', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'repository'].some((k) => (s.modes[k] || {}).plays > 0) },
     { id: 'debunk_10', title: '火眼金睛', desc: '累计答对 10 条谣言', icon: 'search', check: (s) => (s.modes.rumor.correct || 0) >= 10 },
     { id: 'debunk_perfect', title: '零误判', desc: '单组辟谣全部答对', icon: 'check', check: (s) => !!s.flags.perfectSession },
     { id: 'streak_5', title: '连胜五题', desc: '辟谣连续答对 5 题', icon: 'bolt', check: (s) => (s.flags.bestStreak || 0) >= 5 },
     { id: 'debunk_all', title: '题库猎手', desc: '答遍全部 32 条谣言', icon: 'trophy', check: (s) => (s.modes.rumor.seen || []).length >= 32 },
     { id: 'plant_built', title: '总工程师', desc: '建成一座完整的压水堆', icon: 'build', check: (s) => (s.modes.city.completed || 0) >= 1 },
+    { id: 'barrier_guard', title: '屏障守护者', desc: '拆解高放废物的五重屏障', icon: 'vault', check: (s) => (s.modes.repository.exploded || 0) >= 1 },
     { id: 'steady_run', title: '金牌运行员', desc: '完成 12 小时并网发电任务', icon: 'gauge', check: (s) => (s.modes.console.completed || 0) >= 1 },
     { id: 'no_scram', title: '稳如磐石', desc: '零停堆完成一次运行任务', icon: 'shield', check: (s) => !!s.flags.noScramRun },
     { id: 'dose_explorer', title: '剂量雷达', desc: '查看 20 种辐射剂量', icon: 'info', check: (s) => (s.modes.dose.viewed || []).length >= 20 },
@@ -556,7 +564,7 @@ window.NEG = window.NEG || {};
       const total = (NEG.data.china && NEG.data.china.timeline || []).length;
       return total > 0 && (s.modes.china.viewed || []).length >= total;
     } },
-    { id: 'explorer', title: '全栈体验', desc: '体验全部 5 个实验室', icon: 'home', check: (s) => ['rumor', 'city', 'console', 'dose', 'china']
+    { id: 'explorer', title: '全栈体验', desc: '体验全部 6 个实验室', icon: 'home', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'repository']
       .filter((k) => { const d = NEG.tasks && NEG.tasks.get(k); return d && !d.hidden; })
       .every((k) => (s.modes[k] || {}).plays > 0) },
     { id: 'score_1000', title: '千分达成', desc: '累计得分达到 1000', icon: 'trophy', check: (s) => Math.max(s.score || 0, s.bestScore || 0) >= 1000 },
@@ -869,7 +877,8 @@ window.NEG = window.NEG || {};
     city: '核电站建造',
     console: '反应堆控制台',
     dose: '剂量实验室',
-    china: '中国核电'
+    china: '中国核电',
+    repository: '地质处置'
   };
 
   NEG.updateHeader = function () {
@@ -915,10 +924,11 @@ window.NEG = window.NEG || {};
   /* ==========================================================
      启动自检 / 资源恢复
      ========================================================== */
-  const REQUIRED_MODES = ['home', 'main', 'rumor', 'city', 'console', 'dose', 'china'];
+  const REQUIRED_MODES = ['home', 'main', 'rumor', 'city', 'console', 'dose', 'china', 'repository'];
   const MODE_TITLES = {
     home: '首页', main: '认知档案', rumor: '辟谣实验室', city: '核电站建造',
-    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电'
+    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电',
+    repository: '地质处置'
   };
   const MODE_SRCS = {
     home: 'assets/js/modes/home.js',
@@ -927,9 +937,12 @@ window.NEG = window.NEG || {};
     city: 'assets/js/modes/city.js',
     console: 'assets/js/modes/console.js',
     dose: 'assets/js/modes/dose.js',
-    china: 'assets/js/modes/china.js'
+    china: 'assets/js/modes/china.js',
+    repository: 'assets/js/modes/repository.js'
   };
   const DATA_RES = [
+    { id: 'repository', label: '深地质处置数据', src: 'assets/js/data/repository.js', check: () => !!(NEG.data.repository && NEG.data.repository.parts && NEG.data.repository.parts.length === 5) },
+    { id: 'three', label: '3D 渲染引擎', src: 'assets/vendor/three.min.js', check: () => !!(window.THREE && typeof THREE.WebGLRenderer === 'function') },
     { id: 'rumors', label: '辟谣题库', src: 'assets/js/data/rumors.js', check: () => Array.isArray(NEG.data.rumors) && NEG.data.rumors.length > 0 },
     { id: 'doses', label: '剂量数据', src: 'assets/js/data/doses.js', check: () => Array.isArray(NEG.data.doses) && NEG.data.doses.length > 0 },
     { id: 'china', label: '中国核电数据', src: 'assets/js/data/china.js', check: () => !!(NEG.data.china && NEG.data.china.timeline) },
@@ -1046,13 +1059,14 @@ window.NEG = window.NEG || {};
     return (
       '<p>「核纪元」是一座可以亲手拆解、建造、运行的核能科普实验室。所有内容基于 IAEA、ICRP、WHO、UNSCEAR 等机构的公开资料整理。</p>' +
       '<h3>主线学习 · 认知档案</h3>' +
-      '<p><strong>📖 八章主线</strong>：从核科学的历史沿革一路走到结业答辩。沿途会进入六种互动关卡——结构复原、前沿匹配、屏障排序、核谣言粉碎机、反应堆建造、结业答辩；读完本页会自动进入关卡。进度自动保存，随时可以接着读。</p>' +
-      '<h3>五个实验室</h3>' +
+      '<p><strong>📖 八章主线</strong>：从核科学的历史沿革一路走到结业答辩。沿途会进入六种互动关卡——历史展台、前沿匹配、屏障组装、核谣言粉碎机、反应堆建造、结业答辩；读完本页会自动进入关卡。进度自动保存，随时可以接着读。</p>' +
+      '<h3>六个实验室</h3>' +
       '<p><strong>🔍 辟谣实验室</strong>：判断社交媒体上的辐射谣言，查看事实核查与权威来源。<br>' +
       '<strong>🏗️ 核电站建造</strong>：按工程顺序拼装压水堆，观察一、二、三回路如何传递热量。<br>' +
       '<strong>⚡ 反应堆控制台</strong>：调节控制棒、主泵与汽轮机组，在 12 小时班次中稳定发电。<br>' +
       '<strong>📊 剂量实验室</strong>：对数刻度对比 20+ 种辐射剂量，理解「多少剂量有风险」。<br>' +
-      '<strong>🇨🇳 中国核电</strong>：从秦山一期到华龙一号、玲龙一号与「人造太阳」的里程碑。</p>' +
+      '<strong>🇨🇳 中国核电</strong>：从秦山一期到华龙一号、玲龙一号与「人造太阳」的里程碑。<br>' +
+      '<strong>🪨 深地质处置</strong>：观察处置库与多重屏障，理解玻璃固化体、金属容器、缓冲回填材料和天然岩体的共同作用。</p>' +
       '<h3>操作方式</h3>' +
       '<p>支持鼠标、触屏与键盘。辟谣题可用 <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> 选择答案，<kbd>Enter</kbd> 继续；建造与控制台可直接拖拽或点击。</p>' +
       '<h3>快捷键</h3>' +

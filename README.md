@@ -31,6 +31,10 @@ python3 -m http.server 8000
 
 独立四重屏障预览：`labs/waste-barriers.html`。
 
+## 发布
+
+仓库管理员可在 GitHub 的 Settings → Pages 中选择 Deploy from a branch，分支选 `main`，目录选 `/ (root)`，保存后即可使用 <https://pig-7788.github.io/nuclearplsx/>。本项目不需要构建步骤。
+
 ## 进度
 
 存档位于浏览器 `localStorage`，保留章节完成记录、小游戏结果与知识卡。终章成功完成后保存结业证书标志。首页可以重置整个应用的进度。
@@ -59,4 +63,4 @@ node --test tests/*.test.cjs
 - `assets/js/waste-barrier-scene.js`：基于本地 Three.js 的 3D 剖面。
 - `assets/vendor/three.min.js`：本地渲染库，保留其许可标记。
 
-页面仍保留辟谣实验室、核电站建造、反应堆控制台、剂量实验室与中国核电模块。示意模型和典型剂量用于科普教育，不用于工程计算、真实操作训练或医疗判断。
+页面仍保留辟谣实验室、核电站建造、反应堆控制台、剂量实验室、中国核电，以及主分支新增的独立深地质处置实验室（`#/repository`）。独立实验室将缓冲与回填材料分开展示为五层；第六章按课程要求合并为四重屏障。示意模型和典型剂量用于科普教育，不用于工程计算、真实操作训练或医疗判断。

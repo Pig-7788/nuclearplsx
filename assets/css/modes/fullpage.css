@@ -1033,3 +1033,37 @@ body.mode-full-china .app-footer {
     line-height: 1.5;
   }
 }
+
+/* 深地质处置：大屏沉浸式一屏 */
+@media (min-width: 1200px) and (min-height: 700px) {
+  body.mode-full-repository {
+    overflow: hidden;
+  }
+
+  body.mode-full-repository #view.view-full {
+    max-width: 1600px;
+    height: calc(100dvh - var(--header-live, var(--header-h)));
+    overflow: hidden;
+    padding: 10px clamp(14px, 1.6vw, 22px) 12px;
+  }
+
+  body.mode-full-repository .app-footer {
+    display: none;
+  }
+
+  body.mode-full-repository .repo-page {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  body.mode-full-repository .repo-layout {
+    flex: 1;
+    min-height: 0;
+  }
+
+  body.mode-full-repository .repo-stage {
+    height: 100%;
+    min-height: 0;
+  }
+}
