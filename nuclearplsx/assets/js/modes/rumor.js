@@ -20,6 +20,11 @@
     return out;
   }
 
+  function seenCount(state) {
+    const seen = new Set(state.modes.rumor.seen || []);
+    return (NEG.data.rumors || []).filter((q) => seen.has(q.id)).length;
+  }
+
   NEG.registerMode({
     id: 'rumor',
     order: 1,
@@ -29,10 +34,12 @@
     accent: '#ff8a8a',
     blurb: '识破 32 条流传甚广的核辐射谣言，学会用剂量与机制思考。',
     progress(s) {
-      return Math.min(1, (s.modes.rumor.seen || []).length / 32);
+      const total = (NEG.data.rumors || []).length;
+      return total ? seenCount(s) / total : 0;
     },
     isComplete(s) {
-      return (s.modes.rumor.seen || []).length >= 32;
+      const total = (NEG.data.rumors || []).length;
+      return total > 0 && seenCount(s) >= total;
     },
 
     render(root, ctx) {
@@ -92,7 +99,7 @@
             '</div>' +
             '<div class="pt-tools">' +
               '<span class="badge badge-line">题库 ' + all.length + ' 条</span>' +
-              '<span class="badge badge-line">已答 ' + seenBefore.size + ' 条</span>' +
+              '<span class="badge badge-line" id="seenCount">已答 ' + seenBefore.size + ' 条</span>' +
               '<button class="btn btn-quiet btn-sm" data-action="restart">' + NEG.icon('refresh', 14) + '换一组</button>' +
             '</div>' +
           '</header>' +
@@ -128,6 +135,7 @@
 
       /* ---------- 渲染一道题 ---------- */
       function renderQuestion() {
+        cleanupAnswers();
         if (activeKeyCleanup) { activeKeyCleanup(); activeKeyCleanup = null; }
         const q = session.questions[session.index];
         if (!q) return finish();
@@ -182,11 +190,11 @@
 
         /* 键盘 1/2/3 */
         const keyHandler = (e) => {
+          if (U.isTyping(e) || document.querySelector('.overlay')) return;
           if (session.answered) {
             if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); nextQuestion(); }
             return;
           }
-          if (U.isTyping(e)) return;
           const idx = ['1', '2', '3'].indexOf(e.key);
           if (idx >= 0 && idx < session.order.length) {
             e.preventDefault();
@@ -240,6 +248,8 @@
           s.modes.rumor.seen = Array.from(seen);
           s.flags.bestStreak = Math.max(s.flags.bestStreak || 0, session.bestStreak);
         }, 'rumor');
+        seenBefore.add(q.id);
+        root.querySelector('#seenCount').textContent = '已答 ' + seenBefore.size + ' 条';
 
         qIndexEl.textContent = String(session.index + 1);
         progressEl.style.width = ((session.index + 1) / session.questions.length * 100) + '%';
@@ -253,6 +263,7 @@
       }
 
       function renderResult(q, opt) {
+        cleanupAnswers();
         const delta = opt.correct ? ('+' + (10 + Math.min(session.streak, 5) * 2) + ' 分') : '-3 分';
         answerCol.innerHTML =
           '<div class="result-panel ' + (opt.correct ? 'is-success' : 'is-fail') + ' anim-fade-up">' +
@@ -349,14 +360,20 @@
       }
 
       /* ---------- 拖拽 / 点击 ---------- */
+      function cleanupAnswers() {
+        cleanupFns.forEach((fn) => fn());
+        cleanupFns = [];
+      }
+
       function bindAnswers() {
         const cards = ui.qsa('.answer-card', answerCol);
 
         cards.forEach((card) => {
           let startX = 0, startY = 0, pointerId = null, ghost = null, dragging = false, suppressClick = false;
+          let clickTimer = null;
 
           const onPointerDown = (e) => {
-            if (session.answered) return;
+            if (session.answered || pointerId !== null) return;
             if (e.button != null && e.button !== 0) return;
             pointerId = e.pointerId;
             startX = e.clientX;
@@ -365,6 +382,7 @@
             document.addEventListener('pointermove', onPointerMove);
             document.addEventListener('pointerup', onPointerUp);
             document.addEventListener('pointercancel', onPointerUp);
+            window.addEventListener('blur', clearDrag);
           };
 
           const onPointerMove = (e) => {
@@ -389,34 +407,43 @@
             }
           };
 
-          const onPointerUp = (e) => {
-            if (pointerId !== null && e.pointerId !== pointerId) return;
+          const clearDrag = () => {
             document.removeEventListener('pointermove', onPointerMove);
             document.removeEventListener('pointerup', onPointerUp);
             document.removeEventListener('pointercancel', onPointerUp);
+            window.removeEventListener('blur', clearDrag);
             if (ghost) ghost.remove();
             ghost = null;
             document.body.classList.remove('is-dragging');
             dropzone.classList.remove('is-over');
-
-            if (dragging) {
-              suppressClick = true;
-              setTimeout(() => { suppressClick = false; }, 260);
-              if (isOverDropzone(e.clientX, e.clientY, dropzone)) {
-                select(Number(card.dataset.option));
-              }
-            }
             dragging = false;
             pointerId = null;
           };
 
+          const onPointerUp = (e) => {
+            if (pointerId === null || e.pointerId !== pointerId) return;
+            const wasDragging = dragging;
+            const dropped = wasDragging && e.type !== 'pointercancel' && isOverDropzone(e.clientX, e.clientY, dropzone);
+            clearDrag();
+            if (wasDragging && e.type !== 'pointercancel') {
+              suppressClick = true;
+              clearTimeout(clickTimer);
+              clickTimer = setTimeout(() => { suppressClick = false; }, 260);
+            }
+            if (dropped) select(Number(card.dataset.option));
+          };
+
           card.addEventListener('pointerdown', onPointerDown);
-          card.addEventListener('click', (e) => {
+          const onClick = (e) => {
             if (suppressClick) { e.preventDefault(); return; }
             select(Number(card.dataset.option));
-          });
+          };
+          card.addEventListener('click', onClick);
           cleanupFns.push(() => {
+            clearDrag();
+            clearTimeout(clickTimer);
             card.removeEventListener('pointerdown', onPointerDown);
+            card.removeEventListener('click', onClick);
           });
         });
       }
@@ -457,8 +484,7 @@
 
       return function cleanup() {
         if (activeKeyCleanup) { activeKeyCleanup(); activeKeyCleanup = null; }
-        cleanupFns.forEach((fn) => { try { fn(); } catch (e) { /* noop */ } });
-        cleanupFns = [];
+        cleanupAnswers();
         document.body.classList.remove('is-dragging');
         exitShell();
       };

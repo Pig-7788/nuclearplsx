@@ -34,6 +34,7 @@
         .concat(distractors.map((d) => ({ type: 'distractor', id: d.id }))));
       let focusLoop = null;
       const liveState = { 1: false, 2: false, 3: false };
+      let dragCleanups = [];
 
       const st = store.get();
       const bestSteps = st.modes.city.bestSteps || 0;
@@ -132,6 +133,7 @@
       }
 
       function renderTray() {
+        cleanupDrags();
         trayEl.innerHTML = trayOrder.map((item) => {
           if (item.type === 'part') {
             const p = parts.find((q) => q.id === item.id);
@@ -360,15 +362,23 @@
       }
 
       /* ---------- 通用拖拽 ---------- */
+      function cleanupDrags() {
+        dragCleanups.forEach((fn) => fn());
+        dragCleanups = [];
+      }
+
       function makeDraggable(card, onDrop) {
-        let startX = 0, startY = 0, pointerId = null, ghost = null, dragging = false, suppress = false;
+        let startX = 0, startY = 0, pointerId = null, ghost = null, dragging = false;
+        let clickTimer = null;
         const onDown = (e) => {
+          if (pointerId !== null) return;
           if (e.button != null && e.button !== 0) return;
           pointerId = e.pointerId;
           startX = e.clientX; startY = e.clientY; dragging = false;
           document.addEventListener('pointermove', onMove);
           document.addEventListener('pointerup', onUp);
           document.addEventListener('pointercancel', onUp);
+          window.addEventListener('blur', clearDrag);
         };
         const onMove = (e) => {
           if (e.pointerId !== pointerId) return;
@@ -388,26 +398,38 @@
             stage.style.outline = over ? '1px solid rgba(56,225,255,.5)' : '';
           }
         };
-        const onUp = (e) => {
+        const clearDrag = () => {
           document.removeEventListener('pointermove', onMove);
           document.removeEventListener('pointerup', onUp);
           document.removeEventListener('pointercancel', onUp);
+          window.removeEventListener('blur', clearDrag);
           if (ghost) ghost.remove();
           ghost = null;
           document.body.classList.remove('is-dragging');
           stage.style.outline = '';
-          if (dragging) {
-            suppress = true;
-            card.dataset.suppressClick = '1';
-            setTimeout(() => { suppress = false; delete card.dataset.suppressClick; }, 300);
-            const r = stage.getBoundingClientRect();
-            const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
-            if (over) onDrop();
-          }
           dragging = false;
           pointerId = null;
         };
+        const onUp = (e) => {
+          if (pointerId === null || e.pointerId !== pointerId) return;
+          const wasDragging = dragging;
+          const r = stage.getBoundingClientRect();
+          const over = e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom;
+          clearDrag();
+          if (wasDragging && e.type !== 'pointercancel') {
+            card.dataset.suppressClick = '1';
+            clearTimeout(clickTimer);
+            clickTimer = setTimeout(() => { delete card.dataset.suppressClick; }, 300);
+            if (over && e.type !== 'pointercancel') onDrop();
+          }
+        };
         card.addEventListener('pointerdown', onDown);
+        dragCleanups.push(() => {
+          clearDrag();
+          clearTimeout(clickTimer);
+          delete card.dataset.suppressClick;
+          card.removeEventListener('pointerdown', onDown);
+        });
       }
 
       /* ---------- 工具栏 ---------- */
@@ -453,6 +475,7 @@
       }
 
       return function cleanup() {
+        cleanupDrags();
         document.body.classList.remove('is-dragging');
         exitShell();
       };

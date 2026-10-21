@@ -13,7 +13,7 @@
     space: { icon: '🚀', color: '#ff6b6b' }
   };
   const LOG_MIN = -4;    // 0.0001 mSv
-  const LOG_MAX = 5;     // 100 Sv
+  const LOG_MAX = 4;     // 10 Sv，与横轴最后一个刻度一致
 
   function logWidth(v) {
     if (!(v > 0)) return 0;
@@ -114,7 +114,7 @@
               '<div class="panel-head"><h3>' + NEG.icon('target') + '剂量换算器</h3></div>' +
               '<div class="converter">' +
                 '<div class="converter-row">' +
-                  '<input id="convInput" type="number" min="0" step="any" value="0.1" aria-label="剂量数值">' +
+                  '<input id="convInput" type="number" min="0" step="any" value="0.1" aria-label="剂量数值" aria-describedby="convNote">' +
                   '<select id="convUnit" aria-label="剂量单位">' +
                     '<option value="0.001">µSv</option>' +
                     '<option value="1" selected>mSv</option>' +
@@ -122,7 +122,7 @@
                   '</select>' +
                 '</div>' +
                 '<div class="converter-result" id="convResult"></div>' +
-                '<p class="panel-note" id="convNote">相当于约 1 次胸片的剂量量级。</p>' +
+                '<p class="panel-note" id="convNote" role="status">相当于约 1 次胸片的剂量量级。</p>' +
               '</div>' +
             '</section>' +
           '</aside>' +
@@ -240,13 +240,21 @@
       function convert() {
         const v = Number(convInput.value);
         const factor = Number(convUnit.value);
-        if (!isFinite(v) || v < 0) { convResult.innerHTML = ''; return; }
         const mSv = v * factor;
+        if (convInput.value.trim() === '' || !Number.isFinite(v) || v < 0 || !Number.isFinite(mSv / 0.0001)) {
+          convInput.setAttribute('aria-invalid', 'true');
+          convResult.innerHTML = '';
+          convNote.textContent = '请输入非负、有限且未超出换算范围的剂量数值。';
+          return;
+        }
+        convInput.removeAttribute('aria-invalid');
+        // 有效数字保留小剂量，避免 1 mSv 被显示成 0 Sv。
+        const format = (n) => n.toLocaleString('zh-CN', { maximumSignificantDigits: 6 });
         convResult.innerHTML =
-          '<div class="conv-out"><span>微西弗 µSv</span><b>' + U.trimNum(mSv * 1000) + '</b></div>' +
-          '<div class="conv-out"><span>毫西弗 mSv</span><b>' + U.trimNum(mSv) + '</b></div>' +
-          '<div class="conv-out"><span>西弗 Sv</span><b>' + U.trimNum(mSv / 1000) + '</b></div>' +
-          '<div class="conv-out"><span>相当于香蕉</span><b>' + U.trimNum(mSv / 0.0001) + ' 根</b></div>';
+          '<div class="conv-out"><span>微西弗 µSv</span><b>' + format(mSv * 1000) + '</b></div>' +
+          '<div class="conv-out"><span>毫西弗 mSv</span><b>' + format(mSv) + '</b></div>' +
+          '<div class="conv-out"><span>西弗 Sv</span><b>' + format(mSv / 1000) + '</b></div>' +
+          '<div class="conv-out"><span>相当于香蕉</span><b>' + format(mSv / 0.0001) + ' 根</b></div>';
         let note;
         if (mSv >= 1000) note = '已达到急性辐射病阈值（约 1000 mSv）量级，属于事故照射水平。';
         else if (mSv >= 100) note = '超过职业照射年剂量限值（20 mSv）的 ' + U.trimNum(mSv / 20) + ' 倍。';

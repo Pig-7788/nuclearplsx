@@ -233,14 +233,14 @@
         if (s.status === 'complete' || s.status === 'failed') return;
         if (model.scram('手动停堆')) {
           audio.play('scram');
-          ui.toast('控制棒已全部插入，反应堆停堆。等待功率降至 5% 以下后复位。', 'error', { duration: 4200 });
+          ui.toast('控制棒已全部插入。保持冷却，锁定期结束且功率不高于 5% 后可复位。', 'error', { duration: 4200 });
           syncSlidersFromModel();
         }
       });
 
       resetScramBtn.addEventListener('click', () => {
-        if (s.power >= 5) {
-          ui.toast('功率仍高于 5%，请等待余热下降后复位', 'error');
+        if (s.power > 5 || s.t < s.rodLockUntil) {
+          ui.toast('请保持冷却，等待停堆锁定期结束且功率不高于 5% 后复位', 'error');
           return;
         }
         if (model.resetAfterScram()) {
@@ -381,7 +381,7 @@
         /* 告警 */
         let alarm = null;
         if (s.status === 'failed') alarm = { text: s.failureReason, bad: true };
-        else if (s.status === 'scram') alarm = { text: '反应堆已停堆，等待功率降至 5% 以下后复位', bad: true };
+        else if (s.status === 'scram') alarm = { text: '反应堆已停堆，请保持冷却；锁定期结束且功率不高于 5% 后复位', bad: true };
         else if (s.fuelTemp > 1000) alarm = { text: '燃料温度过高！立即插入控制棒并提高冷却', bad: true };
         else if (s.pressure > 17.2) alarm = { text: '一回路压力接近安全阀动作值', bad: true };
         else if (s.power > 115) alarm = { text: '热功率过高，保护系统即将动作', bad: true };
@@ -400,7 +400,11 @@
         }
       }
 
+      let lastLogItem = null;
       function renderLog() {
+        // 日志只在新增条目时更新，避免每秒多次重建相同 DOM。
+        if (s.log[0] === lastLogItem) return;
+        lastLogItem = s.log[0];
         const items = s.log.slice(0, 24);
         eventLog.innerHTML = items.map((l) => {
           const t = l.time != null ? l.time : 0;
@@ -416,9 +420,11 @@
         const scrammed = s.status === 'scram';
         scrambled = scrammed;
         resetScramBtn.style.display = scrammed ? 'block' : 'none';
-        resetScramBtn.disabled = !scrammed || s.power >= 5;
+        const lockMinutes = Math.max(0, Math.ceil((s.rodLockUntil - s.t) * 60));
+        resetScramBtn.disabled = !scrammed || s.power > 5 || lockMinutes > 0;
         const txt = root.querySelector('#resetScramText');
-        if (txt) txt.textContent = s.power >= 5 ? '等待功率降至 5% 以下…' : '停堆后复位（功率 < 5%）';
+        if (txt) txt.textContent = lockMinutes > 0 ? '停堆锁定剩余 ' + lockMinutes + ' 分钟（模拟时间）' :
+          s.power > 5 ? '等待功率降至 5%…' : '停堆后复位（功率 ≤ 5%）';
         scramBtn.disabled = s.status === 'complete' || s.status === 'failed' || scrammed;
         syncSlidersFromModel();
       }

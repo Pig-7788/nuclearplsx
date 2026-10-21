@@ -120,7 +120,7 @@
               '</button>' +
             '</div>' +
           '</header>' +
-          '<div class="china-viewport" id="chinaViewport">' +
+          '<div class="china-viewport" id="chinaViewport" tabindex="0" role="region" aria-label="中国核电资料，可手动滚动阅读">' +
             '<div class="china-track" id="chinaTrack">' +
               '<div class="china-chunk" data-chunk>' + chunkHTML + '</div>' +
             '</div>' +
@@ -130,22 +130,27 @@
       const exitShell = NEG.shell.full('china');
       const viewport = root.querySelector('#chinaViewport');
       const track = root.querySelector('#chinaTrack');
+      const pauseBtn = root.querySelector('[data-action="pause"]');
+
+      function updatePauseButton(paused) {
+        if (!pauseBtn) return;
+        pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
+        pauseBtn.querySelector('span').textContent = paused ? '继续滚动' : '暂停滚动';
+        pauseBtn.classList.toggle('is-off', paused);
+      }
 
       /* ---------- 自动循环滚动 ---------- */
       const marquee = NEG.marquee.create({
         viewport,
         track,
-        speed: 32
+        speed: 32,
+        onPauseChange: updatePauseButton
       });
 
       /* 暂停 / 继续 */
-      const pauseBtn = root.querySelector('[data-action="pause"]');
       if (pauseBtn && marquee) {
         pauseBtn.addEventListener('click', () => {
-          const paused = marquee.toggle();
-          pauseBtn.setAttribute('aria-pressed', paused ? 'true' : 'false');
-          pauseBtn.querySelector('span').textContent = paused ? '继续滚动' : '暂停滚动';
-          pauseBtn.classList.toggle('is-off', paused);
+          marquee.toggle();
           audio.play('click');
         });
       }
@@ -193,8 +198,6 @@
           });
         }, { root: viewport, rootMargin: '0px 0px -10% 0px', threshold: 0.3 });
         items.forEach((el) => io.observe(el));
-        /* 首屏可见的几条立即记录 */
-        items.slice(0, 2).forEach((el) => markViewed(Number(el.dataset.milestone)));
       } else {
         items.forEach((el) => markViewed(Number(el.dataset.milestone)));
       }

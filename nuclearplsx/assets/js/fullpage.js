@@ -97,12 +97,14 @@ window.NEG = window.NEG || {};
         pages.forEach((p, i) => {
           const on = i === index;
           p.classList.toggle('is-active', on);
-          p.setAttribute('aria-hidden', on ? 'false' : 'true');
+          p.setAttribute('aria-hidden', !wide || on ? 'false' : 'true');
+          p.inert = wide && !on;
         });
         dots.forEach((d, i) => {
           const on = i === index;
           d.classList.toggle('is-active', on);
           d.setAttribute('aria-current', on ? 'true' : 'false');
+          d.setAttribute('aria-selected', on ? 'true' : 'false');
         });
         el.dataset.index = String(index);
         if (typeof o.onChange === 'function') o.onChange(index, pages.length);
@@ -121,6 +123,17 @@ window.NEG = window.NEG || {};
 
       function onWheel(e) {
         if (!mq.matches) return;
+        // 每日解析等面板先消费自己的滚动，抵达边缘后再翻页。
+        let node = e.target;
+        while (node && node !== el) {
+          if (node.scrollHeight > node.clientHeight && /^(auto|scroll)$/.test(getComputedStyle(node).overflowY)) {
+            const canScroll = e.deltaY > 0
+              ? node.scrollTop + node.clientHeight < node.scrollHeight - 1
+              : node.scrollTop > 0;
+            if (canScroll) return;
+          }
+          node = node.parentElement;
+        }
         e.preventDefault();
         if (locked) return;
         if (Math.abs(e.deltaY) < 3) return;
@@ -234,6 +247,7 @@ window.NEG = window.NEG || {};
       let last = 0;
       let paused = false;
       let destroyed = false;
+      const motion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
       function stripIds(node) {
         if (node.id) node.removeAttribute('id');
@@ -252,6 +266,7 @@ window.NEG = window.NEG || {};
           stripIds(copy);
           copy.classList.add('is-copy');
           copy.setAttribute('aria-hidden', 'true');
+          copy.inert = true;
           track.appendChild(copy);
           total += base;
         }
@@ -262,7 +277,8 @@ window.NEG = window.NEG || {};
       }
 
       function tick(now) {
-        if (destroyed) return;
+        rafId = null;
+        if (destroyed || paused || document.hidden) return;
         rafId = requestAnimationFrame(tick);
         if (!last) { last = now; return; }
         const dt = Math.min(80, now - last);
@@ -276,18 +292,66 @@ window.NEG = window.NEG || {};
       function onResize() {
         fill();
         if (offset >= loopH) offset = 0;
-        apply();
+        if (!paused) apply();
       }
 
       function onVisibility() {
-        if (document.hidden) { last = 0; }
+        last = 0;
+        if (document.hidden) stop();
+        else start();
+      }
+
+      function stop() {
+        if (rafId !== null) cancelAnimationFrame(rafId);
+        rafId = null;
+        last = 0;
+      }
+
+      function start() {
+        if (!destroyed && !paused && !document.hidden && rafId === null) rafId = requestAnimationFrame(tick);
+      }
+
+      function setPaused(value) {
+        if (destroyed || paused === value) return paused;
+        if (value) {
+          stop();
+          paused = true;
+          viewport.classList.add('is-paused');
+          track.style.transform = '';
+          viewport.scrollTop = offset;
+        } else {
+          offset = viewport.scrollTop;
+          viewport.scrollTop = 0;
+          paused = false;
+          viewport.classList.remove('is-paused');
+          apply();
+          start();
+        }
+        if (typeof o.onPauseChange === 'function') o.onPauseChange(paused);
+        return paused;
+      }
+
+      // 用户开始阅读时交还原生滚动；系统减少动态效果时默认暂停。
+      function onManualScroll() { setPaused(true); }
+      function onKey(e) {
+        if (['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' '].includes(e.key)) setPaused(true);
+      }
+      function onMotionChange() {
+        if (motion.matches) setPaused(true);
       }
 
       fill();
       apply();
-      rafId = requestAnimationFrame(tick);
+      if (motion.matches) setPaused(true);
+      else start();
       window.addEventListener('resize', onResize);
       document.addEventListener('visibilitychange', onVisibility);
+      viewport.addEventListener('wheel', onManualScroll, { passive: true });
+      viewport.addEventListener('touchstart', onManualScroll, { passive: true });
+      viewport.addEventListener('keydown', onKey);
+      viewport.addEventListener('focusin', onManualScroll);
+      if (motion.addEventListener) motion.addEventListener('change', onMotionChange);
+      else if (motion.addListener) motion.addListener(onMotionChange);
 
       let ro = null;
       if ('ResizeObserver' in window) {
@@ -296,21 +360,28 @@ window.NEG = window.NEG || {};
       }
 
       return {
-        pause() { paused = true; return paused; },
-        resume() { paused = false; last = 0; return paused; },
-        toggle() { paused = !paused; last = 0; return paused; },
+        pause() { return setPaused(true); },
+        resume() { return setPaused(false); },
+        toggle() { return setPaused(!paused); },
         get paused() { return paused; },
         setSpeed(v) { speed = v; },
         get speed() { return speed; },
-        reset() { offset = 0; apply(); },
+        reset() { offset = 0; viewport.scrollTop = 0; if (!paused) apply(); },
         destroy() {
           destroyed = true;
-          if (rafId) cancelAnimationFrame(rafId);
-          rafId = null;
+          stop();
           window.removeEventListener('resize', onResize);
           document.removeEventListener('visibilitychange', onVisibility);
+          viewport.removeEventListener('wheel', onManualScroll);
+          viewport.removeEventListener('touchstart', onManualScroll);
+          viewport.removeEventListener('keydown', onKey);
+          viewport.removeEventListener('focusin', onManualScroll);
+          if (motion.removeEventListener) motion.removeEventListener('change', onMotionChange);
+          else if (motion.removeListener) motion.removeListener(onMotionChange);
           if (ro) { ro.disconnect(); ro = null; }
           track.style.transform = '';
+          viewport.classList.remove('is-paused');
+          Array.from(track.children).forEach((node) => { if (node !== chunk) node.remove(); });
         }
       };
     }

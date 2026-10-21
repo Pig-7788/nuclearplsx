@@ -117,8 +117,8 @@
 ### 方式一：直接打开（推荐体验）
 
 ```bash
-git clone https://github.com/Pig-7788/nuclearplsx.git nuclear-epoch
-cd nuclear-epoch
+git clone --branch study --single-branch https://github.com/Pig-7788/nuclearplsx.git nuclear-epoch
+cd nuclear-epoch/nuclearplsx
 open index.html        # macOS
 # 或直接双击 index.html
 ```
@@ -135,7 +135,7 @@ python3 -m http.server 8000
 npx serve .
 ```
 
-访问 <http://localhost:8000>。
+请先进入 `nuclearplsx/` 应用目录，再启动服务器并访问 <http://localhost:8000>。
 
 ---
 
@@ -333,6 +333,18 @@ NEG.registerMode({
 > 音效依赖 Web Audio API，浏览器要求先发生一次用户交互才能播放，因此首次点击后才会出声。
 
 ---
+
+## 🧪 回归测试
+
+在仓库根目录执行（Node.js 20+，无需安装依赖）：
+
+```bash
+node --test nuclearplsx/tests/*.test.js
+```
+
+回归测试覆盖异常存档恢复、切入后台时立即保存、弹窗关闭与确认结果、控制台时间倍速与控制量边界、题库去重与拖拽取消、剂量对数刻度与小剂量换算、首页可访问性及自动滚动生命周期。`.github/workflows/test.yml` 会自动运行这些测试。
+
+中国核电页面支持滚轮、触屏和键盘手动阅读；手动操作会暂停自动滚动。系统开启“减少动态效果”时默认暂停，点击“继续滚动”可主动播放。
 
 ## 🧪 验收记录（开发自测）
 

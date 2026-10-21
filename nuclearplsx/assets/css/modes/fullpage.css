@@ -886,12 +886,20 @@ body.mode-full-china .app-footer {
   will-change: transform;
 }
 
-.china-chunk {
-  padding: 22px clamp(12px, 1.6vw, 22px) 26px;
+.china-viewport.is-paused {
+  overflow-y: auto;
 }
 
-.china-chunk.is-copy {
-  padding-top: 0;
+.china-viewport.is-paused .china-track {
+  will-change: auto;
+}
+
+.china-viewport.is-paused .is-copy {
+  display: none;
+}
+
+.china-chunk {
+  padding: 22px clamp(12px, 1.6vw, 22px) 26px;
 }
 
 .china-page .china-stats {

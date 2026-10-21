@@ -169,15 +169,31 @@ window.NEG = window.NEG || {};
     };
   }
 
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
+  function isRecord(value) {
+    return value !== null && typeof value === 'object' && !Array.isArray(value);
+  }
 
   function mergeDeep(base, patch) {
-    if (!patch || typeof patch !== 'object') return base;
+    if (!isRecord(patch)) return base;
     Object.keys(patch).forEach((k) => {
+      // 存档仅是数据：拒绝会访问或改写对象原型的键。
+      if (k === '__proto__' || k === 'constructor' || k === 'prototype') return;
       const pv = patch[k];
-      if (pv && typeof pv === 'object' && !Array.isArray(pv)) {
-        if (!base[k] || typeof base[k] !== 'object' || Array.isArray(base[k])) base[k] = {};
-        mergeDeep(base[k], pv);
+      const known = Object.prototype.hasOwnProperty.call(base, k);
+      const expected = base[k];
+      if (isRecord(expected)) {
+        if (isRecord(pv)) mergeDeep(expected, pv);
+      } else if (Array.isArray(expected)) {
+        if (Array.isArray(pv)) base[k] = pv;
+      } else if (known && typeof expected === 'number') {
+        const n = Number(pv);
+        if (Number.isFinite(n) && n >= 0) base[k] = n;
+      } else if (known && typeof expected === 'boolean') {
+        if (typeof pv === 'boolean') base[k] = pv;
+      } else if (known && typeof expected === 'string') {
+        if (typeof pv === 'string') base[k] = pv;
+      } else if (isRecord(pv)) {
+        base[k] = mergeDeep({}, pv);
       } else if (pv !== undefined) {
         base[k] = pv;
       }
@@ -189,33 +205,43 @@ window.NEG = window.NEG || {};
     const d = defaults();
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed && typeof parsed === 'object') {
-          mergeDeep(d, parsed);
-          // 清理非法值
-          d.score = Math.max(0, Number(d.score) || 0);
-          d.bestScore = Math.max(d.score, Number(d.bestScore) || 0);
-          d.modes.rumor.seen = Array.isArray(d.modes.rumor.seen) ? d.modes.rumor.seen : [];
-          d.modes.dose.viewed = Array.isArray(d.modes.dose.viewed) ? d.modes.dose.viewed : [];
-          d.modes.china.viewed = Array.isArray(d.modes.china.viewed) ? d.modes.china.viewed : [];
-        }
-      }
+      if (raw) mergeDeep(d, JSON.parse(raw));
     } catch (e) { /* 隐私模式 / file:// 限制时静默降级 */ }
+    d.score = Math.round(d.score);
+    d.bestScore = Math.max(d.score, Math.round(d.bestScore));
+    d.modes.rumor.seen = Array.from(new Set(d.modes.rumor.seen.filter((id) => Number.isInteger(id) && id > 0)));
+    d.modes.dose.viewed = Array.from(new Set(d.modes.dose.viewed.filter((id) => typeof id === 'string')));
+    d.modes.china.viewed = Array.from(new Set(d.modes.china.viewed.filter((id) => Number.isInteger(id) && id >= 0)));
     return d;
   }
 
   const listeners = [];
   let data = load();
   let saveTimer = null;
+  let savePending = false;
+
+  function flushSave() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    if (!savePending) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      savePending = false;
+    } catch (e) { /* 隐私模式 / file:// 限制时保留内存中的进度 */ }
+  }
 
   function persist() {
     data.updatedAt = Date.now();
+    savePending = true;
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* noop */ }
-    }, 120);
+    saveTimer = setTimeout(flushSave, 120);
   }
+
+  // 移动端切入后台也可能终止页面；不要只依赖延时保存。
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushSave();
+  });
 
   function notify(reason) {
     listeners.forEach((fn) => {
@@ -254,6 +280,7 @@ window.NEG = window.NEG || {};
       notify('reset');
     },
     save: persist,
+    flush: flushSave,
     defaults
   };
   NEG.store = store;
@@ -367,6 +394,12 @@ window.NEG = window.NEG || {};
      5. UI：Toast / Modal / 辅助
      ========================================================== */
   const ui = {};
+  const modalStack = [];
+  let modalOverflow = '';
+
+  ui.closeModals = function (opts) {
+    modalStack.slice().reverse().forEach((handle) => handle.close(opts));
+  };
 
   ui.el = function (html) {
     const t = document.createElement('template');
@@ -425,24 +458,31 @@ window.NEG = window.NEG || {};
       '</div>';
 
     root.appendChild(overlay);
+    if (!modalStack.length) modalOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const modalEl = overlay.querySelector('.modal');
     const lastFocus = document.activeElement;
     let closed = false;
+    let focusTimer = null;
 
-    function close() {
+    function close(closeOpts) {
       if (closed) return;
       closed = true;
-      document.body.style.overflow = '';
+      clearTimeout(focusTimer);
+      const index = modalStack.indexOf(handle);
+      if (index >= 0) modalStack.splice(index, 1);
+      if (!modalStack.length) document.body.style.overflow = modalOverflow;
       overlay.remove();
       document.removeEventListener('keydown', onKey, true);
-      if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* noop */ } }
+      if ((!closeOpts || closeOpts.restoreFocus !== false) && lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* noop */ } }
       if (typeof o.onClose === 'function') o.onClose();
     }
 
     function onKey(e) {
+      if (modalStack[modalStack.length - 1] !== handle) return;
       if (e.key === 'Escape' && o.closable !== false) {
+        e.preventDefault();
         e.stopPropagation();
         close();
       }
@@ -474,7 +514,9 @@ window.NEG = window.NEG || {};
     });
 
     const handle = { el: overlay, modal: modalEl, close, body: modalEl.querySelector('.modal-body') };
-    setTimeout(() => {
+    modalStack.push(handle);
+    focusTimer = setTimeout(() => {
+      if (closed || modalStack[modalStack.length - 1] !== handle) return;
       const focusTarget = modalEl.querySelector('[data-autofocus]') || modalEl.querySelector('.modal-actions .btn') || modalEl.querySelector('.modal-close');
       if (focusTarget) focusTarget.focus();
     }, 30);
@@ -497,14 +539,22 @@ window.NEG = window.NEG || {};
   };
 
   ui.countUp = function (el, to, opts) {
-    if (!el) return;
+    if (!el || el.isConnected === false) return;
     const o = opts || {};
     const from = Number(o.from || 0);
     const dur = o.duration || 900;
-    const start = performance.now();
     const dec = o.decimals || 0;
     const fmt = o.format || ((v) => U.fmtNum(v));
+    const reduceMotion = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ||
+      document.body.classList.contains('reduce-motion');
+    if (reduceMotion) {
+      el.textContent = fmt(to);
+      el.dataset.dec = dec;
+      return;
+    }
+    const start = performance.now();
     function frame(t) {
+      if (el.isConnected === false) return;
       const p = U.clamp((t - start) / dur, 0, 1);
       const eased = 1 - Math.pow(1 - p, 3);
       el.textContent = fmt(from + (to - from) * eased);
@@ -536,7 +586,11 @@ window.NEG = window.NEG || {};
     { id: 'debunk_10', title: '火眼金睛', desc: '累计答对 10 条谣言', icon: 'search', check: (s) => (s.modes.rumor.correct || 0) >= 10 },
     { id: 'debunk_perfect', title: '零误判', desc: '单组辟谣全部答对', icon: 'check', check: (s) => !!s.flags.perfectSession },
     { id: 'streak_5', title: '连胜五题', desc: '辟谣连续答对 5 题', icon: 'bolt', check: (s) => (s.flags.bestStreak || 0) >= 5 },
-    { id: 'debunk_all', title: '题库猎手', desc: '答遍全部 32 条谣言', icon: 'trophy', check: (s) => (s.modes.rumor.seen || []).length >= 32 },
+    { id: 'debunk_all', title: '题库猎手', desc: '答遍全部谣言', icon: 'trophy', check: (s) => {
+      const rumors = NEG.data.rumors || [];
+      const seen = new Set(s.modes.rumor.seen || []);
+      return rumors.length > 0 && rumors.every((rumor) => seen.has(rumor.id));
+    } },
     { id: 'plant_built', title: '总工程师', desc: '建成一座完整的压水堆', icon: 'build', check: (s) => (s.modes.city.completed || 0) >= 1 },
     { id: 'steady_run', title: '金牌运行员', desc: '完成 12 小时并网发电任务', icon: 'gauge', check: (s) => (s.modes.console.completed || 0) >= 1 },
     { id: 'no_scram', title: '稳如磐石', desc: '零停堆完成一次运行任务', icon: 'shield', check: (s) => !!s.flags.noScramRun },
@@ -778,7 +832,7 @@ window.NEG = window.NEG || {};
       }
 
       // 防止上一步残留的弹窗 / 提示阻挡交互
-      document.querySelectorAll('.overlay').forEach((n) => n.remove());
+      ui.closeModals({ restoreFocus: false });
       const toastRoot = document.getElementById('toastRoot');
       if (toastRoot) toastRoot.innerHTML = '';
       document.body.style.overflow = '';

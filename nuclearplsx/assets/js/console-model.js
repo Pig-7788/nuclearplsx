@@ -51,7 +51,7 @@ window.NEG = window.NEG || {};
     const state = {
       /* 时间 */
       t: 0,                  // 模拟小时
-      speed: o.speed || 1,
+      speed: clamp(Number(o.speed) || 1, 1, 4),
       /* 控制量 */
       rod: start.rod,        // 控制棒插入位置 %：100 = 全插入，0 = 全提出
       pump: start.pump,      // 主泵流量 %
@@ -102,7 +102,7 @@ window.NEG = window.NEG || {};
     }
 
     function scram(reason) {
-      if (state.status === 'failed' || state.status === 'complete') return false;
+      if (state.status === 'failed' || state.status === 'complete' || state.status === 'scram') return false;
       state.decayHeat = 0.06 * THERMAL_MW * clamp(state.power, 3, 130) / 100;
       state.power = Math.min(state.power, 45);
       state.rod = 100;
@@ -116,12 +116,21 @@ window.NEG = window.NEG || {};
     }
 
     function step(dtRealSeconds) {
-      const dtReal = clamp(dtRealSeconds || 0, 0, 0.12);
-      if (!dtReal) return;
+      if (!Number.isFinite(dtRealSeconds) || dtRealSeconds <= 0) return;
+      // 倍速必须推进整个模型；用小步长维持与正常倍速一致的积分精度。
+      let remaining = Math.min(dtRealSeconds, 0.12) * state.speed;
+      while (remaining > 1e-10 && state.status !== 'failed' && state.status !== 'complete') {
+        const dt = Math.min(remaining, 1 / 60, Math.max(0, MISSION_HOURS - state.t) * 3600 / K.timeScale);
+        if (dt <= 0) break;
+        advance(dt);
+        remaining -= dt;
+      }
+    }
+
+    function advance(dtReal) {
       if (state.status === 'failed' || state.status === 'complete') return;
 
-      const speed = state.speed || 1;
-      const dtSim = dtReal * K.timeScale * speed;   // 模拟秒
+      const dtSim = dtReal * K.timeScale;           // 模拟秒
       const dtH = dtSim / 3600;                     // 模拟小时
       state.t += dtH;
       state.loadDemand = loadDemandAt(state.t);
@@ -254,21 +263,25 @@ window.NEG = window.NEG || {};
     }
 
     function setControl(name, value) {
-      if (!(name in state)) return;
+      const ranges = { rod: [0, 100], pump: [40, 120], load: [0, 100] };
+      if (!Object.prototype.hasOwnProperty.call(ranges, name)) return;
       if (state.status === 'failed' || state.status === 'complete') return;
-      if (state.status === 'scram') return;   // 停堆后必须复位才能操作
+      if (state.status === 'scram' && name !== 'pump') return; // 停堆后仍须保持冷却
       if (name === 'rod' && state.t < state.rodLockUntil) return;
-      state[name] = clamp(Number(value) || 0, 0, 100);
+      const numeric = Number(value);
+      if (!Number.isFinite(numeric)) return;
+      state[name] = clamp(numeric, ranges[name][0], ranges[name][1]);
     }
 
     function applyDecayHeat(watts) {
-      state.decayHeat = Math.max(state.decayHeat, watts || 0);
+      if (Number.isFinite(watts)) state.decayHeat = Math.max(state.decayHeat, watts);
     }
 
     /** 停堆后复位：确认功率已降至极低，允许重新提棒 */
     function resetAfterScram() {
       if (state.status !== 'scram') return false;
       if (state.power > 5) return false;
+      if (state.t < state.rodLockUntil) return false;
       state.rod = 100;
       state.load = 0;
       state.rodLockUntil = 0;
