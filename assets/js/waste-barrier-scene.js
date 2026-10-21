@@ -102,7 +102,7 @@ window.NEG = window.NEG || {};
             const height = Math.round(rect.height);
             if (!(width > 0 && height > 0)) return;
             sizeDirty = false;
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.75));
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(700000 / (width * height))));
             renderer.setSize(width, height, false);
             camera.aspect = width / height;
             // 窄屏主动后退，长条与展开层都保留在视野中。

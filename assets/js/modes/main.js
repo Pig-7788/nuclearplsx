@@ -158,54 +158,41 @@ window.NEG = window.NEG || {};
       return chunkByChars(blocks);
     }
 
-    /* overflow:hidden 让测量容器成为独立格式化上下文,避免外边距塌陷漏算 */
-    stage.innerHTML = '<div data-probe style="overflow:hidden"></div>';
-    const probe = stage.firstElementChild;
-    if (!probe) return chunkByChars(blocks);
-
     const limit = stage.clientHeight;
-    const pages = [];
-    let start = 0;
-
+    /* 一次插入整章，再批量读布局；避免每个段落都触发一次同步重排。 */
+    const groups = [];
+    let html = '';
     for (let i = 0; i < blocks.length; i++) {
       const end = runEnd(blocks, i);
-      const isChoice = blocks[i].type === 'choice';
-      const isEmphasis = blocks[i].type === 'p' && blocks[i].emphasis;
-
-      /* 章末点题独占一屏:在它前面断开 */
-      if (isEmphasis && i > start) {
-        pages.push([start, i - 1]);
-        start = i;
-        probe.innerHTML = '';
-      }
-
       let chunk = '';
       for (let k = i; k <= end; k++) chunk += renderBlock(blocks[k]);
-      probe.insertAdjacentHTML('beforeend', chunk);
-      const over = probe.scrollHeight > limit;
-
-      /* 选项块按正常流排布;只有当它恰好是该屏最后一块时才贴底(见 is-bottom) */
-      if (isChoice && over && i > start) {
-        if (probe.lastElementChild) probe.removeChild(probe.lastElementChild);
-        pages.push([start, i - 1]);
-        start = i;
-        probe.innerHTML = renderBlock(blocks[i]);
-        i = end;
-        continue;
-      }
-
-      if (over && i > start) {
-        /* 放不下:整段回退,另起一页 */
-        for (let k = i; k <= end; k++) {
-          if (probe.lastElementChild) probe.removeChild(probe.lastElementChild);
-        }
-        pages.push([start, i - 1]);
-        start = i;
-        probe.innerHTML = '';
-        for (let k = i; k <= end; k++) probe.insertAdjacentHTML('beforeend', renderBlock(blocks[k]));
+      const emphasis = blocks[i].type === 'p' && blocks[i].emphasis;
+      if (chunk) {
+        html += emphasis ? '<div class="main-emphasis-group">' + chunk + '</div>' : chunk;
+        groups.push({ start: i, end, emphasis });
       }
       i = end;
     }
+    stage.innerHTML = '<div data-probe style="overflow:hidden;flex:none;visibility:hidden">' + html + '</div>';
+    const probe = stage.firstElementChild;
+    if (!probe) return chunkByChars(blocks);
+    const children = Array.from(probe.children);
+    groups.forEach((group, i) => {
+      const el = children[i];
+      group.top = el.offsetTop;
+      group.bottom = el.offsetTop + el.offsetHeight;
+      if (el.tagName !== 'P') group.bottom += parseFloat(getComputedStyle(el).marginBottom) || 0;
+    });
+    const pages = [];
+    let start = 0;
+    let top = groups.length ? groups[0].top : 0;
+    groups.forEach((group) => {
+      if ((group.emphasis || group.bottom - top > limit) && group.start > start) {
+        pages.push([start, group.start - 1]);
+        start = group.start;
+        top = group.top;
+      }
+    });
     if (start < blocks.length) pages.push([start, blocks.length - 1]);
 
     stage.innerHTML = '';
@@ -602,9 +589,14 @@ window.NEG = window.NEG || {};
         /* 翻页 / 开局进场动画:dir=1 向后翻,dir=-1 向前翻 */
         function animateIn(el, dir) {
           if (!el || document.body.classList.contains('reduce-motion')) return;
-          el.classList.remove('pg-in-next', 'pg-in-prev');
-          void el.offsetWidth;
-          el.classList.add(dir < 0 ? 'pg-in-prev' : 'pg-in-next');
+          if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+          if (typeof el.animate === 'function') {
+            el.getAnimations().forEach((animation) => animation.cancel());
+            el.animate([
+              { opacity: 0.55, transform: 'translate3d(' + (dir < 0 ? -14 : 14) + 'px,0,0)' },
+              { opacity: 1, transform: 'none' }
+            ], { duration: 220, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' });
+          }
         }
 
         function paintCurrent(dir) {
