@@ -1,9 +1,12 @@
 /* ============================================================
    核纪元 · 首页（驾驶舱）
-   上下两屏整页翻页：第一屏主视觉，第二屏实验室矩阵
+   上下两屏整页翻页：第一屏主视觉，第二屏五大实验室
    ============================================================ */
 (function (NEG) {
   'use strict';
+
+  /* 中文数字:首页「N 个实验室」标题按当前可见数量自动生成 */
+  const CN_NUM = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九', '十'];
 
   NEG.registerMode({
     id: 'home',
@@ -17,7 +20,6 @@
     render(root, ctx) {
       const { store, tasks, achievements, data, ui, util: U } = ctx;
       const state = store.get();
-      const stat = tasks.stats(state);
       const achvTotal = achievements.list.length;
       const achvCount = achievements.count();
       const today = U.todayKey();
@@ -30,12 +32,59 @@
         ? pool[U.hashString(today) % pool.length]
         : null;
 
-      const labs = tasks.list().filter((t) => t.id !== 'home');
+      const labs = tasks.list().filter((t) => t.id !== 'home' && t.id !== 'main' && !t.hidden);
 
-      /* 第二屏：实验室矩阵 */
+      /* 主线(认知档案)进度与总量 */
+      const storyData = (typeof NEG !== 'undefined' && NEG.story) ? NEG.story : null;
+      const storyIds = (storyData && Array.isArray(storyData.order)) ? storyData.order : [];
+      const mainState = (state.modes && state.modes.main) || {};
+      const mainDoneList = Array.isArray(mainState.completed) ? mainState.completed : [];
+      const mainDone = mainDoneList.length;
+      const mainCards = Array.isArray(mainState.cards) ? mainState.cards.length : 0;
+      let storyCardTotal = 0;
+      storyIds.forEach((sid) => {
+        const c = storyData ? storyData[sid] : null;
+        if (c && Array.isArray(c.knowledge_cards)) storyCardTotal += c.knowledge_cards.length;
+      });
+      const storyTotal = storyIds.length || 8;
+      const mainPct = storyTotal ? Math.round((mainDone / storyTotal) * 100) : 0;
+
+      /* 下一个未完成章节 */
+      let nextStory = null;
+      for (let i = 0; i < storyIds.length; i++) {
+        if (mainDoneList.indexOf(storyIds[i]) < 0) { nextStory = { idx: i + 1, id: storyIds[i] }; break; }
+      }
+      const mainCtaText = !storyIds.length
+        ? '开始学习'
+        : (nextStory ? (mainDone > 0 ? '继续第 ' + nextStory.idx + ' 章' : '开始学习') : '回顾全部章节');
+
+      /* 第二屏主线区只写「下一章」,数量统计留在首屏,避免重复 */
+      const nextChapterTitle = (nextStory && storyData[nextStory.id]) ? (storyData[nextStory.id].title || '') : '';
+      /* 章节标题本身已带「第 N 章：」前缀,这里不再重复章号 */
+      const mainNote = nextStory
+        ? '下一章 · ' + nextChapterTitle
+        : (storyIds.length ? '八章主线已全部完成，可回看任意章节' : '主线剧情准备中');
+
+      /* 第二屏：主线学习 + 五个实验室 */
       const labsHTML =
         '<div class="section-head">' +
-          '<h2>' + labs.length + ' 个实验室</h2>' +
+          '<h2>主线学习</h2>' +
+          '<span class="section-note">八章剧情串起核科学全景</span>' +
+        '</div>' +
+        '<section class="panel panel-pad anim-fade-up" style="margin-bottom:16px">' +
+          '<div class="row" style="justify-content:space-between;gap:14px;flex-wrap:wrap;align-items:center">' +
+            '<div style="min-width:0">' +
+              '<h3>' + NEG.icon('book') + ' 认知档案</h3>' +
+              '<p class="panel-note" style="margin-top:4px">' + U.esc(mainNote) + '</p>' +
+            '</div>' +
+            '<button class="btn btn-primary" data-go="main" type="button">' +
+              NEG.icon('play', 16) + mainCtaText +
+            '</button>' +
+          '</div>' +
+          '<div class="progress" style="margin-top:10px"><i style="width:' + mainPct + '%"></i></div>' +
+        '</section>' +
+        '<div class="section-head">' +
+          '<h2>' + CN_NUM[labs.length] + '个实验室</h2>' +
           '<span class="section-note">每个模块都能独立玩，进度自动保存</span>' +
         '</div>' +
         '<div class="mode-grid">' +
@@ -44,7 +93,7 @@
             const status = tasks.status(m.id, state);
             const color = m.accent || '#38e1ff';
             return (
-              '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 6) + '" data-go="' + m.id + '" ' +
+              '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 5) + '" data-go="' + m.id + '" ' +
                 'style="--tile-color:' + color + ';--tile-accent:' + color + '33;--tile-icon-bg:' + color + '18;--tile-border:' + color + '3d">' +
                 '<span class="tile-top">' +
                   '<span class="tile-icon">' + NEG.icon(m.icon, 21) + '</span>' +
@@ -125,20 +174,19 @@
             '<section class="home-page home-page-hero" data-page="0" data-label="概览">' +
               '<div class="hero anim-fade-up">' +
                 '<div class="hero-copy">' +
-                  '<span class="eyebrow">INTERACTIVE NUCLEAR LAB · 交互式核能实验室</span>' +
-                  '<h1>把核能<br><span class="grad">拆开、建好、再读懂</span></h1>' +
-                  '<p class="hero-sub">识破 32 条辐射谣言，拼装一座压水堆，把它开到满功率；' +
-                    '再走进 3D 解剖室，逐层拆开一枚 1945 年内爆式核装置。</p>' +
+                  '<span class="eyebrow">核纪元 · 基于虚拟仿真与认知诊断的核科普智慧教育平台</span>' +
+                  '<h1>从六维度<br><span class="grad">认识、理解、驾驭核科学技术</span></h1>' +
+                  '<p class="hero-sub">8 章剧情 × 6 大维度，从两弹一艇到人造太阳。' +
+                    '边读故事边闯关，收集知识卡，最后完成结业答辩。</p>' +
                   '<div class="hero-cta">' +
-                    '<button class="btn btn-primary btn-lg" data-go="rumor">' + NEG.icon('play', 17) + '开始探索</button>' +
-                    '<button class="btn btn-ghost btn-lg" data-go="device">' + NEG.icon('scan', 17) + '3D 拆解</button>' +
-                    '<button class="btn btn-quiet btn-lg" data-action="help">' + NEG.icon('book') + '怎么玩</button>' +
+                    '<button class="btn btn-primary btn-lg" data-go="main">' + NEG.icon('play', 17) + '开始学习</button>' +
+                    '<button class="btn btn-ghost btn-lg" data-go="main">' + NEG.icon('book') + '章节一览</button>' +
                   '</div>' +
                   '<div class="hero-stats">' +
+                    '<div class="hero-stat"><b>' + mainDone + ' / ' + storyTotal + '</b><span>已完成章节</span></div>' +
+                    '<div class="hero-stat"><b>' + mainCards + ' / ' + storyCardTotal + '</b><span>收集知识卡</span></div>' +
                     '<div class="hero-stat"><b data-count="' + (state.score | 0) + '">0</b><span>累计得分</span></div>' +
-                    '<div class="hero-stat"><b>' + achvCount + ' / ' + achvTotal + '</b><span>成就解锁</span></div>' +
-                    '<div class="hero-stat"><b>' + stat.done + ' / ' + stat.total + '</b><span>实验室完成</span></div>' +
-                    '<div class="hero-stat"><b>' + Math.round(stat.percent) + '%</b><span>综合进度</span></div>' +
+                    '<div class="hero-stat"><b>' + mainPct + '%</b><span>主线进度</span></div>' +
                   '</div>' +
                 '</div>' +
                 '<div class="hero-visual" aria-hidden="true">' +
@@ -150,13 +198,13 @@
                   '<span class="coords">35.68°N 139.69°E<br>SYS.ONLINE / 100%</span>' +
                 '</div>' +
                 '<button class="page-hint" type="button" data-action="nextPage">' +
-                  '<span>滚动滚轮 · 看七个实验室</span>' +
+                  '<span>滚动滚轮 · 主线与实验室</span>' +
                   '<i class="hint-arrow" aria-hidden="true"></i>' +
                 '</button>' +
               '</div>' +
             '</section>' +
 
-            /* ---------- 第二屏：实验室矩阵 + 每日一谣 + 成就 ---------- */
+            /* ---------- 第二屏：五大实验室 + 每日一谣 + 成就 ---------- */
             '<section class="home-page home-page-labs" data-page="1" data-label="实验室">' +
               '<div class="home-page-inner">' + labsHTML + '</div>' +
             '</section>' +
@@ -200,10 +248,6 @@
       };
 
       onAction('nextPage', () => { if (pager) pager.next(); });
-
-      onAction('help', () => {
-        document.getElementById('helpBtn').click();
-      });
 
       onAction('share', () => NEG.share.open());
 

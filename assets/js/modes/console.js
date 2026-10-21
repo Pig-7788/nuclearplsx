@@ -18,6 +18,8 @@
     nav: '反应堆控制台',
     icon: 'gauge',
     accent: '#3ef0a2',
+    /* 暂不对外展示入口:代码保留,导航与首页都不再出现 */
+    hidden: true,
     blurb: '控制棒、主泵、汽轮机：在 12 小时班次里把一座压水堆稳定开到满功率。',
     progress(s) {
       const c = s.modes.console || {};
@@ -138,7 +140,6 @@
                 '<div class="readout"><span>燃料温度</span><b><span id="tfVal">300</span><small>°C</small></b></div>' +
               '</div>' +
             '</section>' +
-            '<section class="panel console-card console-trends" id="consoleTrends" aria-label="反应堆运行趋势"></section>' +
           '</div>' +
 
           /* ---------- 右：仪表 ---------- */
@@ -164,10 +165,6 @@
             '</section>' +
           '</div>' +
         '</div>';
-
-      const trendRoot = root.querySelector('#consoleTrends');
-      const trends = NEG.ConsoleTrends ? NEG.ConsoleTrends.mount(trendRoot, s) : null;
-      if (!trends) trendRoot.innerHTML = '<p class="console-hint">运行趋势未加载，请使用下方资源提示重试。</p>';
 
       /* ---------- 控件 ---------- */
       const rodRange = root.querySelector('#rodRange');
@@ -236,9 +233,7 @@
 
       scramBtn.addEventListener('click', () => {
         if (s.status === 'complete' || s.status === 'failed') return;
-        if (trends) trends.update(s, true);
         if (model.scram('手动停堆')) {
-          if (trends) trends.update(s, true);
           audio.play('scram');
           ui.toast('控制棒已全部插入，反应堆停堆。等待功率降至 5% 以下后复位。', 'error', { duration: 4200 });
           syncSlidersFromModel();
@@ -251,7 +246,6 @@
           return;
         }
         if (model.resetAfterScram()) {
-          if (trends) trends.update(s, true);
           audio.play('click');
           syncSlidersFromModel();
           ui.toast('控制棒已复位。注意：氙毒仍然存在，重启需要更多提棒。', 'info');
@@ -441,7 +435,6 @@
           maxPower = Math.max(maxPower, s.power);
           if (s.power >= 30 && !firstCriticalAt) firstCriticalAt = s.t;
         }
-        if (trends) trends.update(s);
         updateCore();
 
         uiAccum += dt;
@@ -465,7 +458,6 @@
 
       function finish(failed) {
         finished = true;
-        if (trends) trends.update(s, true);
         if (rafId) cancelAnimationFrame(rafId);
         rafId = null;
         audio.play(failed ? 'wrong' : 'fanfare');
@@ -536,7 +528,6 @@
       return function cleanup() {
         if (rafId) cancelAnimationFrame(rafId);
         rafId = null;
-        if (trends) trends.destroy();
       };
     }
   });

@@ -1,0 +1,76 @@
+.hx-lesson {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 4px 4px 14px;
+  color: var(--text, #e9f2ff);
+  font-family: var(--font-sans, sans-serif);
+  scrollbar-color: #3a6275 #081421;
+  scrollbar-width: thin;
+}
+
+.hx-lesson *, .hx-lesson *::before, .hx-lesson *::after { box-sizing: border-box; }
+.hx-lesson ::selection { background: #155563; color: #eefcff; }
+.hx-lesson button, .hx-lesson canvas { -webkit-tap-highlight-color: transparent; }
+.hx-lesson button:focus-visible, .hx-canvas:focus-visible { outline: 2px solid #69e6ef; outline-offset: 4px; }
+.hx-lesson button:disabled { cursor: default; }
+.hx-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 8px; }
+.hx-head h3 { min-width: 0; margin: 0; font-size: clamp(18px, 1.8vw, 24px); line-height: 1.35; text-wrap: balance; overflow-wrap: anywhere; }
+.hx-count { flex-shrink: 0; color: #77e4e9; font-size: 14px; font-variant-numeric: tabular-nums; }
+.hx-intro { max-width: 72ch; margin: 0 0 18px; color: #b3c7d9; font-size: 16px; line-height: 1.7; overflow-wrap: anywhere; }
+.hx-workspace { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(280px, .9fr); gap: 24px; align-items: stretch; }
+.hx-showcase { min-width: 0; display: flex; flex-direction: column; }
+.hx-stage { position: relative; min-height: 310px; height: clamp(310px, 39vh, 430px); background: radial-gradient(ellipse at 50% 42%, #122c3b 0, #091826 58%, #07131f 100%); border: 1px solid #234455; border-radius: 16px; overflow: hidden; }
+.hx-render-label { position: absolute; top: 15px; left: 17px; color: #b8d1dd; font-size: 14px; pointer-events: none; z-index: 1; }
+.hx-canvas, .hx-static { display: block; width: 100%; height: 100%; min-height: 0; }
+.hx-canvas { touch-action: none; cursor: grab; }
+.hx-canvas.is-dragging { cursor: grabbing; }
+.hx-canvas[hidden], .hx-static[hidden] { display: none; }
+.hx-model-caption { position: absolute; bottom: 13px; left: 12px; right: 12px; margin: 0; text-align: center; color: #b3c9d7; font-size: 14px; pointer-events: none; }
+.hx-controls { display: flex; justify-content: center; flex-wrap: wrap; gap: 7px; padding: 12px 0 0; }
+.hx-controls button { border: 1px solid #2b4a5b; border-radius: 8px; background: #0a1d2c; padding: 8px 12px; min-height: 40px; color: #d0e3eb; font: inherit; font-size: 14px; cursor: pointer; transition: background .18s ease-out, border-color .18s ease-out; }
+.hx-controls button:hover:not(:disabled) { background: #123546; border-color: #62cdd9; }
+.hx-controls button:disabled { color: #7895a5; border-color: #203a49; background: #0a1824; }
+.hx-reading { min-width: 0; display: flex; flex-direction: column; }
+.hx-reading > h4 { margin: 0 0 11px; font-size: 16px; font-weight: 650; color: #e0edf5; }
+.hx-card-list { display: flex; flex-direction: column; gap: 8px; }
+.hx-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; width: 100%; min-height: 54px; padding: 12px 15px; border: 1px solid #294757; border-radius: 10px; background: #091b29; color: #dfedf5; text-align: left; font: inherit; font-size: 16px; cursor: pointer; transition: background .18s ease-out, border-color .18s ease-out; }
+.hx-card:hover { border-color: #5c9bac; background: #102b3b; }
+.hx-card[aria-pressed="true"] { background: #123542; border-color: #58d7e1; }
+.hx-card-title { overflow-wrap: anywhere; line-height: 1.5; }
+.hx-card-state { flex-shrink: 0; color: #a9c4d4; font-size: 14px; }
+.hx-card.is-read .hx-card-state { color: #84e6be; }
+.hx-detail { margin-top: 18px; padding-top: 17px; border-top: 1px solid #244251; min-height: 134px; }
+.hx-detail h4 { color: #83e4e9; font-size: 17px; line-height: 1.45; margin: 0 0 9px; overflow-wrap: anywhere; }
+.hx-detail p { max-width: 70ch; font-size: 16px; line-height: 1.75; color: #c0d1df; margin: 0; overflow-wrap: anywhere; white-space: pre-line; }
+.hx-finish { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-top: auto; padding-top: 19px; }
+.hx-read-progress { margin: 0; color: #aec7d7; font-size: 14px; line-height: 1.5; }
+.hx-complete { padding: 10px 19px; min-height: 44px; border: 1px solid #61e0e9; border-radius: 10px; background: #4ed5e3; color: #05202a; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; transition: background .18s ease-out; }
+.hx-complete:hover:not(:disabled) { background: #89edf2; }
+.hx-complete:disabled { border-color: #345262; background: #1a3444; color: #b8cedb; cursor: default; }
+
+@media (max-width: 760px) {
+  .hx-head { align-items: flex-start; gap: 10px; }
+  .hx-head h3 { font-size: 19px; }
+  .hx-count { font-size: 13px; padding-top: 3px; }
+  .hx-intro { margin-bottom: 14px; }
+  .hx-workspace { grid-template-columns: 1fr; gap: 23px; }
+  .hx-stage { height: 300px; min-height: 260px; }
+  .hx-card { min-height: 58px; }
+  .hx-reading { padding-bottom: 8px; }
+  .hx-finish { align-items: stretch; }
+  .hx-complete { min-width: 130px; }
+}
+
+@media (max-width: 390px) {
+  .hx-head { flex-wrap: wrap; gap: 5px; }
+  .hx-stage { height: 276px; }
+  .hx-controls { gap: 6px; }
+  .hx-controls button { padding: 8px 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hx-lesson button { transition: none; }
+}
+body.reduce-motion .hx-lesson button { transition: none; }

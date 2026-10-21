@@ -8,8 +8,11 @@
 .plant-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
-  gap: 16px;
-  align-items: start;
+  gap: 14px;
+  align-items: stretch;
+  /* 撑满一屏可用高度,右侧栏不再把页面顶高 */
+  height: 100%;
+  min-height: 0;
 }
 
 .plant-stage {
@@ -50,6 +53,46 @@
   transition: stroke 0.25s, fill 0.25s;
 }
 
+.plant-svg .slot-group {
+  cursor: pointer;
+}
+
+.plant-svg .slot-group:focus-visible {
+  outline: none;
+}
+
+.plant-svg .slot-group:focus-visible .slot {
+  stroke: var(--cyan);
+  stroke-width: 3;
+  stroke-dasharray: none;
+}
+
+.plant-svg .slot-group[data-slot="containment"] {
+  pointer-events: none;
+}
+
+.plant-svg .slot-group[data-slot="containment"] .slot {
+  fill: none;
+  pointer-events: stroke;
+}
+
+.plant-svg .slot-group[data-slot="containment"] .slot-hit {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 16;
+  pointer-events: stroke;
+}
+
+.plant-svg .slot.is-hover {
+  stroke: var(--cyan);
+  stroke-width: 2.8;
+}
+
+.plant-svg .slot.is-wrong {
+  stroke: var(--red);
+  stroke-width: 2.8;
+}
+
 .plant-svg .slot.is-next {
   stroke: var(--cyan);
   fill: rgba(56, 225, 255, 0.06);
@@ -65,6 +108,7 @@
   fill: rgba(150, 180, 212, 0.62);
   font-size: 10.5px;
   letter-spacing: 0.04em;
+  pointer-events: none;
 }
 
 .plant-svg .part {
@@ -185,36 +229,94 @@
 .plant-side {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.build-panel { padding: 16px 16px 18px; }
+.build-panel {
+  flex: 0 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 12px 12px;
+}
+
+.build-panel .progress { margin-bottom: 8px !important; }
 
 .build-steps {
   list-style: none;
   margin: 0;
   padding: 0;
+  /* 四组按两栏平衡排布,12 个部件一屏放得下 */
+  columns: 2;
+  column-gap: 10px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.build-steps .build-group {
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+}
+
+/* 按回路分组的建造清单 */
+.build-group {
+  list-style: none;
+  margin: 0 0 7px;
+  padding: 0;
+}
+
+.build-group .bg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 3px;
+  padding: 3px 8px;
+  border-left: 2px solid var(--group-c, var(--cyan));
+  font-size: 11.5px;
+  color: var(--group-c, var(--cyan));
+}
+
+.build-group .bg-name {
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.build-group .bg-count {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  opacity: 0.8;
+}
+
+.build-group .bg-parts {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  max-height: 292px;
-  overflow-y: auto;
+  gap: 3px;
+}
+
+.build-group.is-done .bg-head {
+  opacity: 0.6;
 }
 
 .build-step {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 6px 8px;
-  border-radius: 8px;
-  font-size: 12.5px;
+  gap: 7px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
   color: var(--text-3);
   transition: all 0.25s;
 }
 
 .build-step .step-no {
-  width: 20px;
-  height: 20px;
+  width: 16px;
+  height: 16px;
   flex-shrink: 0;
   display: grid;
   place-items: center;
@@ -254,19 +356,31 @@
 }
 
 /* 部件托盘 */
-.tray-panel { padding: 14px 16px 16px; }
+.tray-panel {
+  flex: 0 0 auto;
+  padding: 10px 12px 12px;
+  min-height: 0;
+}
 
 .part-tray {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 7px;
-  max-height: 300px;
-  overflow-y: auto;
-  padding-right: 2px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: none;
+  overflow: hidden;
+  padding-right: 0;
+}
+
+.part-tray .part-card {
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
 }
 
 .part-card {
   position: relative;
+  touch-action: none;
+  cursor: grab;
   padding: 9px 10px;
   border-radius: 9px;
   border: 1px solid var(--line-2);
@@ -298,6 +412,11 @@
   transform: translateY(-1px);
 }
 
+.part-card.is-selected {
+  border-color: var(--cyan);
+  background: rgba(56, 225, 255, 0.12);
+}
+
 .part-card.is-distractor .part-dot { background: rgba(255, 107, 107, 0.5); }
 .part-card.is-used {
   opacity: 0.25;
@@ -306,11 +425,20 @@
 }
 
 .plant-info {
-  padding: 16px;
-  min-height: 148px;
+  flex: 1 1 auto;
+  padding: 12px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.plant-info p {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .plant-info .info-kicker {
@@ -481,5 +609,101 @@
   .scroll-hint {
     display: inline;
     margin-left: 4px;
+  }
+}
+
+/* ---------- 矮屏收口:右侧栏整体压进一屏 ---------- */
+@media (max-height: 820px) {
+  .plant-layout {
+    gap: 10px;
+  }
+
+  /* 建造面板可压缩,顺序列表三栏铺开 */
+  .plant-side > .build-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .build-steps {
+    columns: 3;
+    column-gap: 6px;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .plant-side > .plant-info {
+    flex: 0 1 auto;
+  }
+
+  .plant-side {
+    gap: 8px;
+  }
+
+  .build-panel,
+  .tray-panel,
+  .plant-info {
+    padding: 9px 10px;
+  }
+
+  .build-panel .panel-head,
+  .tray-panel .panel-head,
+  .loop-panel .panel-head {
+    margin-bottom: 6px !important;
+  }
+
+  .build-panel .progress {
+    margin-bottom: 6px !important;
+  }
+
+  .build-step {
+    padding: 2px 5px;
+    gap: 5px;
+    font-size: 11px;
+  }
+
+  .build-step .step-no {
+    width: 14px;
+    height: 14px;
+    font-size: 9px;
+  }
+
+  .build-step .step-tag {
+    display: none;
+  }
+
+  .build-group .bg-head {
+    padding: 2px 6px;
+    margin-bottom: 2px;
+    font-size: 10.5px;
+  }
+
+  .build-group .bg-parts {
+    gap: 2px;
+  }
+
+  .build-steps .build-group {
+    margin-bottom: 5px;
+  }
+
+  .part-tray {
+    gap: 4px;
+  }
+
+  .part-tray .part-card {
+    padding: 3px 7px;
+    font-size: 10.5px;
+  }
+
+  .plant-info {
+    gap: 4px;
+  }
+
+  .plant-info p {
+    -webkit-line-clamp: 2;
+  }
+
+  .loop-btn {
+    padding: 4px 8px;
+    font-size: 11px;
   }
 }
