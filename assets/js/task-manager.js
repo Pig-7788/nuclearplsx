@@ -28,6 +28,8 @@ window.NEG = window.NEG || {};
       order: typeof def.order === 'number' ? def.order : 999,
       blurb: def.blurb || '',
       accent: def.accent || 'cyan',
+      /* hidden: 注册仍在、代码照跑,只是不出现在导航与首页入口 */
+      hidden: !!def.hidden,
       render: def.render,
       progress: typeof def.progress === 'function' ? def.progress : null,
       isComplete: typeof def.isComplete === 'function' ? def.isComplete : null,
@@ -56,6 +58,10 @@ window.NEG = window.NEG || {};
     },
     list() {
       return tasks.slice();
+    },
+    /* 只返回对外展示的模块(导航 / 首页入口用) */
+    visible() {
+      return tasks.filter((t) => !t.hidden);
     },
     ids() {
       return tasks.map((t) => t.id);
@@ -152,7 +158,7 @@ window.NEG = window.NEG || {};
     /** 全局统计：完成模块数 / 已体验数 / 平均进度 */
     stats(appState) {
       const s = appState || (NEG.store && NEG.store.get()) || {};
-      const labTasks = tasks.filter((t) => t.id !== 'home');
+      const labTasks = tasks.filter((t) => t.id !== 'home' && t.id !== 'main' && !t.hidden);
       let done = 0;
       let active = 0;
       let sum = 0;

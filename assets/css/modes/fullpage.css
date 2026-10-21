@@ -140,40 +140,6 @@ body.mode-full-china .app-footer {
   display: none;
 }
 
-/* 核装置解剖：大屏沉浸式一屏，保留舞台操作空间 */
-@media (min-width: 1200px) and (min-height: 700px) {
-  body.mode-full-device {
-    overflow: hidden;
-  }
-
-  body.mode-full-device #view.view-full {
-    max-width: 1600px;
-    height: calc(100dvh - var(--header-live, var(--header-h)));
-    overflow: hidden;
-    padding: 10px clamp(14px, 1.6vw, 22px) 12px;
-  }
-
-  body.mode-full-device .app-footer {
-    display: none;
-  }
-
-  body.mode-full-device .device-page {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-  }
-
-  body.mode-full-device .device-layout {
-    flex: 1;
-    min-height: 0;
-  }
-
-  body.mode-full-device .device-stage {
-    height: 100%;
-    min-height: 0;
-  }
-}
-
 /* 手机端：给底部 Tab 导航留出空间 */
 @media (max-width: 640px) {
   body.mode-full-china #view.view-full {
@@ -274,8 +240,10 @@ body.mode-full-china .app-footer {
     align-items: center;
   }
 
+  /* 栏数按实际实验室数量自动分配(隐藏模块后不会留空栏) */
   .home-page-labs .mode-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
     gap: 10px;
   }
 
@@ -462,6 +430,24 @@ body.mode-full-china .app-footer {
   grid-template-columns: minmax(0, 1fr);
   gap: 12px;
   min-height: 0;
+  flex: 1 1 auto;
+}
+
+/* 主按钮统一放底部右侧 */
+.rumor-page .rumor-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+}
+
+.rumor-page .rumor-footer:empty {
+  display: none;
+}
+
+.rumor-page .rumor-footer .hint-line {
+  margin-right: auto;
 }
 
 .rumor-page .rumor-col {
@@ -533,6 +519,15 @@ body.mode-full-china .app-footer {
     height: 100%;
   }
 
+  /* 作答后底栏才长出按钮, 提前占位, 卡片高度才不会跳 */
+  .rumor-page .rumor-footer {
+    min-height: 47px;
+  }
+
+  .rumor-page .rumor-footer:empty {
+    display: flex;
+  }
+
   .rumor-page .rumor-body {
     flex: 1;
     min-height: 0;
@@ -549,21 +544,17 @@ body.mode-full-china .app-footer {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
   }
 
   .rumor-page .rumor-post-slot .post {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 0;
-    max-height: 100%;
+    max-height: none;
     overflow-y: auto;
     display: flex;
     flex-direction: column;
     padding: 20px 22px;
-  }
-
-  .rumor-page .post .rumer-tag {
-    margin-top: 14px;
   }
 
   .rumor-page .post-text {
@@ -572,12 +563,8 @@ body.mode-full-china .app-footer {
   }
 
   .rumor-page .post-foot {
-    margin-top: 14px;
+    margin-top: auto;
     padding-top: 12px;
-  }
-
-  .rumor-page .rumer-tag {
-    padding: 8px 11px;
   }
 
   .rumor-page .rumor-col-right {
@@ -601,14 +588,14 @@ body.mode-full-china .app-footer {
     min-height: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 12px;
   }
 
   .rumor-page #answerCol .answer-card {
-    flex: 0 1 auto;
+    flex: 1 1 auto;
     min-height: 96px;
-    max-height: 158px;
+    max-height: none;
     align-items: center;
     padding: 14px 16px;
   }
@@ -956,5 +943,93 @@ body.mode-full-china .app-footer {
 
   .china-page .pt-brand .lead-inline {
     display: none;
+  }
+}
+
+/* ============================================================
+   核电站建造 · 右侧栏收口(不出现滚动条)
+   分组清单用 display:contents 打散成网格项,组头横跨整行
+   ============================================================ */
+@media (min-width: 980px) and (min-height: 640px) {
+  .city-page .plant-side {
+    overflow: hidden;
+    padding-right: 0;
+  }
+
+  .city-page .plant-side > .build-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .city-page .build-steps {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 2px 6px;
+    align-content: start;
+  }
+
+  .city-page .build-steps .build-group {
+    display: contents;
+  }
+
+  .city-page .build-steps .build-group .bg-head {
+    grid-column: 1 / -1;
+    margin: 2px 0 1px;
+  }
+
+  .city-page .build-steps .build-group .bg-parts {
+    display: contents;
+  }
+
+  .city-page .plant-info {
+    flex: 0 1 auto;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .city-page .plant-info p {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+/* 更矮的屏幕:建造清单铺 4 栏,保证 12 个部件一屏放下不被裁 */
+@media (min-width: 980px) and (min-height: 640px) and (max-height: 830px) {
+  .city-page .build-steps {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 2px 5px;
+  }
+
+  .city-page .build-step {
+    padding: 2px 4px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .city-page .build-steps .build-group .bg-head {
+    margin: 1px 0 0;
+    font-size: 10px;
+  }
+
+  .city-page .plant-info {
+    padding: 8px 10px;
+    gap: 4px;
+  }
+
+  .city-page .plant-info h3 {
+    font-size: 13px;
+  }
+
+  .city-page .plant-info p {
+    font-size: 11px;
+    line-height: 1.5;
   }
 }

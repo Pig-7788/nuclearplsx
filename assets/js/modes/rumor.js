@@ -110,16 +110,14 @@
             '</div>' +
             '<div class="rumor-col rumor-col-right">' +
               '<div class="rumor-answers" id="answerCol"></div>' +
-              '<div class="dropzone answer-drop" id="dropzone">' +
-                NEG.icon('share', 16) + '<span>把正确的科普卡片拖到这里松手，也可以直接点击卡片或按 1 / 2 / 3</span>' +
-              '</div>' +
             '</div>' +
           '</div>' +
+          '<div class="rumor-footer" id="rumorFooter"></div>' +
         '</div>';
 
       const stage = root.querySelector('#stage');
       const answerCol = root.querySelector('#answerCol');
-      const dropzone = root.querySelector('#dropzone');
+      const footerEl = root.querySelector('#rumorFooter');
       const qIndexEl = root.querySelector('#qIndex');
       const qTotalEl = root.querySelector('#qTotal');
       const progressEl = root.querySelector('#qProgress');
@@ -141,7 +139,7 @@
             '<div class="post-top">' +
               '<span class="avatar">👤</span>' +
               '<span class="post-meta">' +
-                '<b>热心网友 <span class="badge badge-red">疑似谣言</span></b>' +
+                '<b>热心网友</b>' +
                 '<span>刚刚 · 来自「家族群」 · 转发 10万+</span>' +
               '</span>' +
             '</div>' +
@@ -149,13 +147,12 @@
             '<div class="post-foot">' +
               '<span>💬 2.3 万评论</span><span>🔁 转发 8.7 万</span><span>❤️ 点赞 15 万</span>' +
             '</div>' +
-            '<div class="rumer-tag">' + NEG.icon('alert', 14) + '核查提示：先想想“这是哪种辐射？剂量有多大？”再作答。</div>' +
           '</div>';
 
         answerCol.innerHTML =
           '<div class="answer-head">' +
             '<h3>' + NEG.icon('target', 17) + '哪张科普卡片能驳倒它？</h3>' +
-            '<span class="answer-hint">拖到左侧核查区 / 点击 / 按 1-3</span>' +
+            '<span class="answer-hint">点击作答 / 按 1-3 快速选择</span>' +
           '</div>' +
           '<div class="answer-grid" id="answers">' +
             session.order.map((opt, i) => (
@@ -169,7 +166,7 @@
 
         answerCol.scrollTop = 0;
         stage.scrollTop = 0;
-        dropzone.classList.remove('is-idle');
+        if (footerEl) footerEl.innerHTML = '';
 
         qIndexEl.textContent = String(session.index + 1);
         qTotalEl.textContent = String(session.questions.length);
@@ -246,7 +243,6 @@
         roundScoreEl.textContent = String(session.earned);
         streakEl.textContent = '🔥 连对 ' + session.streak;
         streakEl.classList.toggle('is-hot', session.streak >= 3);
-        dropzone.classList.add('is-idle');
 
         renderResult(q, opt);
         ctx.achievements.checkAll();
@@ -277,17 +273,17 @@
                   '</span>'
                 )).join('') + '</div>'
               : '') +
-            '<div class="result-actions">' +
-              '<span class="hint-line">' + NEG.icon('keyboard', 14) + '按 Enter 继续</span>' +
-              '<span class="spacer"></span>' +
-              '<button class="btn btn-primary" data-action="next">' +
-                (session.index + 1 >= session.questions.length ? '查看本轮成绩' : '下一题') +
-                NEG.icon('arrowRight', 16) + '</button>' +
-            '</div>' +
           '</div>';
 
         answerCol.scrollTop = 0;
-        answerCol.querySelector('[data-action="next"]').addEventListener('click', (e) => {
+
+        /* 主按钮统一放页面底部右侧 */
+        footerEl.innerHTML =
+          '<span class="hint-line">' + NEG.icon('keyboard', 14) + '按 Enter 继续</span>' +
+          '<button class="btn btn-primary" data-action="next">' +
+            (session.index + 1 >= session.questions.length ? '查看本轮成绩' : '下一题') +
+            NEG.icon('arrowRight', 16) + '</button>';
+        footerEl.querySelector('[data-action="next"]').addEventListener('click', (e) => {
           e.stopPropagation();
           audio.play('click');
           nextQuestion();
@@ -348,83 +344,14 @@
         return handle;
       }
 
-      /* ---------- 拖拽 / 点击 ---------- */
+      /* ---------- 点击选择(已取消拖拽) ---------- */
       function bindAnswers() {
-        const cards = ui.qsa('.answer-card', answerCol);
-
-        cards.forEach((card) => {
-          let startX = 0, startY = 0, pointerId = null, ghost = null, dragging = false, suppressClick = false;
-
-          const onPointerDown = (e) => {
+        ui.qsa('.answer-card', answerCol).forEach((card) => {
+          card.addEventListener('click', () => {
             if (session.answered) return;
-            if (e.button != null && e.button !== 0) return;
-            pointerId = e.pointerId;
-            startX = e.clientX;
-            startY = e.clientY;
-            dragging = false;
-            document.addEventListener('pointermove', onPointerMove);
-            document.addEventListener('pointerup', onPointerUp);
-            document.addEventListener('pointercancel', onPointerUp);
-          };
-
-          const onPointerMove = (e) => {
-            if (e.pointerId !== pointerId) return;
-            const dx = e.clientX - startX;
-            const dy = e.clientY - startY;
-            if (!dragging && Math.hypot(dx, dy) > 8) {
-              dragging = true;
-              ghost = card.cloneNode(true);
-              ghost.classList.add('drag-ghost');
-              ghost.style.width = card.offsetWidth + 'px';
-              ghost.style.left = e.clientX + 'px';
-              ghost.style.top = e.clientY + 'px';
-              document.body.appendChild(ghost);
-              document.body.classList.add('is-dragging');
-            }
-            if (ghost) {
-              ghost.style.left = e.clientX + 'px';
-              ghost.style.top = e.clientY + 'px';
-              const over = isOverDropzone(e.clientX, e.clientY, dropzone);
-              dropzone.classList.toggle('is-over', over);
-            }
-          };
-
-          const onPointerUp = (e) => {
-            if (pointerId !== null && e.pointerId !== pointerId) return;
-            document.removeEventListener('pointermove', onPointerMove);
-            document.removeEventListener('pointerup', onPointerUp);
-            document.removeEventListener('pointercancel', onPointerUp);
-            if (ghost) ghost.remove();
-            ghost = null;
-            document.body.classList.remove('is-dragging');
-            dropzone.classList.remove('is-over');
-
-            if (dragging) {
-              suppressClick = true;
-              setTimeout(() => { suppressClick = false; }, 260);
-              if (isOverDropzone(e.clientX, e.clientY, dropzone)) {
-                select(Number(card.dataset.option));
-              }
-            }
-            dragging = false;
-            pointerId = null;
-          };
-
-          card.addEventListener('pointerdown', onPointerDown);
-          card.addEventListener('click', (e) => {
-            if (suppressClick) { e.preventDefault(); return; }
             select(Number(card.dataset.option));
           });
-          cleanupFns.push(() => {
-            card.removeEventListener('pointerdown', onPointerDown);
-          });
         });
-      }
-
-      function isOverDropzone(x, y, dropzoneEl) {
-        if (!dropzoneEl) return false;
-        const r = dropzoneEl.getBoundingClientRect();
-        return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
       }
 
       /* ---------- 筛选 / 重开 ---------- */
