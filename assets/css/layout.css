@@ -288,7 +288,7 @@
 
 
 /* ---------- 外壳响应式 ---------- */
-@media (max-width: 960px) {
+@media (max-width: 1120px) {
   .header-inner {
     gap: 14px;
     padding: 0 16px;
@@ -415,7 +415,7 @@
 }
 
 /* 平板：顶部导航可横向滚动，右侧渐隐提示 */
-@media (min-width: 641px) and (max-width: 960px) {
+@media (min-width: 641px) and (max-width: 1120px) {
   .mode-nav {
     mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);
     -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 32px), transparent 100%);

@@ -44,14 +44,18 @@ async function noOverflow(page, name) {
 (async () => {
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
   const url = 'http://127.0.0.1:' + server.address().port;
-  const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' });
+  const browser = await chromium.launch({
+    headless: true,
+    executablePath: process.env.CHROME_BIN || '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    args: ['--enable-unsafe-swiftshader', '--use-angle=swiftshader']
+  });
   try {
     const page = await browser.newPage({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce', acceptDownloads: true });
     page.on('pageerror', (e) => errors.push(e.message));
     await page.clock.install();
     await page.goto(url);
     await page.waitForSelector('.home-pager');
-    assert.equal(await page.evaluate(() => NEG.tasks.ids().length), 6);
+    assert.equal(await page.evaluate(() => NEG.tasks.ids().length), 7);
     await page.evaluate(() => {
       const create = NEG.ReactorModel.create;
       NEG.ReactorModel.create = (...args) => {
@@ -175,20 +179,56 @@ async function noOverflow(page, name) {
       await page.clock.runFor(1000);
       await noOverflow(page, 'console no horizontal overflow at ' + width);
       if (width === 390) await capture(page, 'console-trends-mobile', '#consoleTrends');
+      await route(page, 'device', '#deviceStage');
+      await page.clock.runFor(300);
+      await noOverflow(page, 'device no horizontal overflow at ' + width);
+      if (width === 390) await capture(page, 'device-mobile', '#deviceStage');
       await route(page, 'dose', '#annualDoseForm');
     }
     await page.setViewportSize({ width: 1440, height: 1000 });
-    for (const [id, selector] of [['home', '.home-pager'], ['rumor', '.answer-card'], ['city', '.plant-svg'], ['china', '.china-viewport'], ['dose', '#doseRows'], ['console', '#consoleTrend']]) {
+    await route(page, 'device', '#deviceStage');
+    assert.equal(await page.locator('.di-item').count(), 7);
+    assert.equal(await page.locator('.device-label').count(), 7);
+    await page.locator('[data-part="core"]').click();
+    assert.equal(await page.locator('#detailName').textContent(), '钚核心');
+    await page.locator('#deviceExplodeBtn').click();
+    await page.clock.runFor(2400);
+    assert.equal(await page.locator('#explodeValue').textContent(), '100%');
+    assert.match(await page.locator('#deviceExplodeBtn').textContent(), /一键组装/);
+    assert.ok(await page.evaluate(() => (NEG.store.get().modes.device.exploded || 0) >= 1));
+    await page.keyboard.press('d');
+    await page.clock.runFor(2400);
+    assert.equal(await page.locator('#explodeValue').textContent(), '0%');
+    await page.keyboard.press('l');
+    assert.ok(await page.locator('#deviceLabels').evaluate((el) => el.classList.contains('is-hidden')));
+    await page.keyboard.press('l');
+    assert.ok(!(await page.locator('#deviceLabels').evaluate((el) => el.classList.contains('is-hidden'))));
+    await page.locator('#deviceExplodeRange').evaluate((el) => {
+      el.value = '50';
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await page.clock.runFor(400);
+    assert.equal(await page.locator('#explodeValue').textContent(), '50%');
+    await page.locator('[data-action="sources"]').click();
+    await page.waitForSelector('.overlay .modal');
+    assert.match(await page.locator('.overlay .modal-title').textContent(), /关于这枚核装置/);
+    await page.locator('.overlay .modal-close').click();
+    await capture(page, 'device-desktop', '#deviceStage');
+    ok('3D device: seven layers, pick, explode / assemble, slider, sources and keyboard');
+    for (const [id, selector] of [['home', '.home-pager'], ['rumor', '.answer-card'], ['city', '.plant-svg'], ['china', '.china-viewport'], ['dose', '#doseRows'], ['console', '#consoleTrend'], ['device', '#deviceStage']]) {
       await route(page, id, selector);
       if (['dose', 'console'].includes(id)) assert.ok(!(await page.locator('body').getAttribute('class') || '').includes('mode-full-'));
+      if (id === 'device') assert.ok((await page.locator('body').getAttribute('class') || '').includes('mode-full-device'));
     }
-    ok('all six routes work with latest upstream full-page shell');
+    ok('all seven routes work with latest upstream full-page shell');
     await page.goto('file://' + path.join(base, 'index.html') + '#/dose');
     await page.waitForSelector('#annualDoseForm');
     await page.fill('#annual-head-ct', '1');
     assert.match(await page.locator('#annualDoseTotal').textContent(), /2 /);
     await route(page, 'console', '#consoleTrend');
-    ok('file:// standalone launch supports new modules');
+    await route(page, 'device', '#deviceStage');
+    assert.equal(await page.locator('#deviceCanvas').count(), 1);
+    ok('file:// standalone launch supports new modules and local 3D');
 
     const retryPage = await browser.newPage();
     let block = true;

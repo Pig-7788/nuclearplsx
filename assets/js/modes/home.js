@@ -1,6 +1,6 @@
 /* ============================================================
    核纪元 · 首页（驾驶舱）
-   上下两屏整页翻页：第一屏主视觉，第二屏五大实验室
+   上下两屏整页翻页：第一屏主视觉，第二屏实验室矩阵
    ============================================================ */
 (function (NEG) {
   'use strict';
@@ -32,10 +32,10 @@
 
       const labs = tasks.list().filter((t) => t.id !== 'home');
 
-      /* 第二屏：五个实验室 */
+      /* 第二屏：实验室矩阵 */
       const labsHTML =
         '<div class="section-head">' +
-          '<h2>五个实验室</h2>' +
+          '<h2>' + labs.length + ' 个实验室</h2>' +
           '<span class="section-note">每个模块都能独立玩，进度自动保存</span>' +
         '</div>' +
         '<div class="mode-grid">' +
@@ -44,7 +44,7 @@
             const status = tasks.status(m.id, state);
             const color = m.accent || '#38e1ff';
             return (
-              '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 5) + '" data-go="' + m.id + '" ' +
+              '<button class="mode-tile anim-fade-up d' + Math.min(i + 1, 6) + '" data-go="' + m.id + '" ' +
                 'style="--tile-color:' + color + ';--tile-accent:' + color + '33;--tile-icon-bg:' + color + '18;--tile-border:' + color + '3d">' +
                 '<span class="tile-top">' +
                   '<span class="tile-icon">' + NEG.icon(m.icon, 21) + '</span>' +
@@ -126,12 +126,13 @@
               '<div class="hero anim-fade-up">' +
                 '<div class="hero-copy">' +
                   '<span class="eyebrow">INTERACTIVE NUCLEAR LAB · 交互式核能实验室</span>' +
-                  '<h1>把核电站<br><span class="grad">拆开、建好、再启动</span></h1>' +
-                  '<p class="hero-sub">识破 32 条辐射谣言，拼装一座压水堆，亲手把它开到满功率。' +
-                    '零依赖、可离线、支持鼠标 / 触屏 / 键盘。</p>' +
+                  '<h1>把核能<br><span class="grad">拆开、建好、再读懂</span></h1>' +
+                  '<p class="hero-sub">识破 32 条辐射谣言，拼装一座压水堆，把它开到满功率；' +
+                    '再走进 3D 解剖室，逐层拆开一枚 1945 年内爆式核装置。</p>' +
                   '<div class="hero-cta">' +
                     '<button class="btn btn-primary btn-lg" data-go="rumor">' + NEG.icon('play', 17) + '开始探索</button>' +
-                    '<button class="btn btn-ghost btn-lg" data-action="help">' + NEG.icon('book') + '怎么玩</button>' +
+                    '<button class="btn btn-ghost btn-lg" data-go="device">' + NEG.icon('scan', 17) + '3D 拆解</button>' +
+                    '<button class="btn btn-quiet btn-lg" data-action="help">' + NEG.icon('book') + '怎么玩</button>' +
                   '</div>' +
                   '<div class="hero-stats">' +
                     '<div class="hero-stat"><b data-count="' + (state.score | 0) + '">0</b><span>累计得分</span></div>' +
@@ -149,13 +150,13 @@
                   '<span class="coords">35.68°N 139.69°E<br>SYS.ONLINE / 100%</span>' +
                 '</div>' +
                 '<button class="page-hint" type="button" data-action="nextPage">' +
-                  '<span>滚动滚轮 · 看五个实验室</span>' +
+                  '<span>滚动滚轮 · 看六个实验室</span>' +
                   '<i class="hint-arrow" aria-hidden="true"></i>' +
                 '</button>' +
               '</div>' +
             '</section>' +
 
-            /* ---------- 第二屏：五大实验室 + 每日一谣 + 成就 ---------- */
+            /* ---------- 第二屏：实验室矩阵 + 每日一谣 + 成就 ---------- */
             '<section class="home-page home-page-labs" data-page="1" data-label="实验室">' +
               '<div class="home-page-inner">' + labsHTML + '</div>' +
             '</section>' +
