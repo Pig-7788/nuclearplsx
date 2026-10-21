@@ -408,9 +408,7 @@
   display: block;
   width: 100%;
   height: 100%;
-  filter: saturate(1.04) contrast(1.03);
-  mask-image: radial-gradient(ellipse 80% 76% at 52% 50%, #000 55%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 76% at 52% 50%, #000 55%, transparent 100%);
+  /* 边缘氛围由上方静态遮罩承担，避免对每一帧画布做滤镜和蒙版合成。 */
 }
 
 .repo-atmosphere {

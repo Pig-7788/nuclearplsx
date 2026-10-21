@@ -158,7 +158,7 @@
                   '<button type="button" data-view="barrier" role="tab" aria-selected="false">多重屏障</button>' +
                 '</div>' +
                 '<div class="repo-tools">' +
-                  '<button class="repo-icon-btn" type="button" data-tool="auto" aria-pressed="' + (reduceMotion ? 'false' : 'true') + '" title="自动旋转">' + NEG.icon('orbit', 17) + '</button>' +
+                  '<button class="repo-icon-btn is-off" type="button" data-tool="auto" aria-pressed="false" title="自动旋转">' + NEG.icon('orbit', 17) + '</button>' +
                   '<button class="repo-icon-btn" type="button" data-tool="labels" aria-pressed="true" title="显示 / 隐藏标注">' + NEG.icon('tag', 17) + '</button>' +
                   '<button class="repo-icon-btn" type="button" data-tool="reset" title="复位视角">' + NEG.icon('refresh', 17) + '</button>' +
                 '</div>' +
@@ -229,7 +229,7 @@
 
       let selected = selectedId;
       let labelsOn = true;
-      let autoOn = !reduceMotion;
+      let autoOn = false;
       let explodeTarget = 0;
       let explodeCurrent = 0;
       let mode = 'wide';
@@ -242,6 +242,7 @@
       let camera = null;
       let resizeObserver = null;
       let hovered = null;
+      let loadingTimer = null;
 
       const cleanups = [];
       const on = (el, type, fn, opts) => {
@@ -410,6 +411,7 @@
         e.currentTarget.setAttribute('aria-pressed', labelsOn ? 'true' : 'false');
         e.currentTarget.classList.toggle('is-off', !labelsOn);
         labelsEl.classList.toggle('is-hidden', !labelsOn);
+        if (view) view.invalidate();
         ctx.audio.play('click');
       });
       on(root.querySelector('[data-tool="reset"]'), 'click', () => {
@@ -449,7 +451,7 @@
           e.preventDefault();
           if (view) view.nudge(k);
         } else if (k === '+' || k === '=') {
-          if (view) view.zoomBy(-1.1);
+          if (view) view.zoomBy(0.9);
         } else if (k === '-') {
           if (view) view.zoomBy(1.1);
         }
@@ -478,19 +480,19 @@
       }
 
       loadingEl.classList.add('is-done');
-      setTimeout(() => { if (!destroyed) loadingEl.hidden = true; }, 480);
+      loadingTimer = setTimeout(() => { if (!destroyed) loadingEl.hidden = true; }, 480);
       setMode('wide', { sound: false });
       setExplode(0, { sound: false });
       if (view) view.setAuto(autoOn);
 
       return function cleanup() {
         destroyed = true;
+        clearTimeout(loadingTimer);
         cleanups.forEach((fn) => fn());
         if (raf) cancelAnimationFrame(raf);
         if (resizeObserver) resizeObserver.disconnect();
         if (view && view.dispose) view.dispose();
         if (renderer) {
-          renderer.dispose();
           if (renderer.forceContextLoss) {
             try { renderer.forceContextLoss(); } catch (e) { /* noop */ }
           }
@@ -505,9 +507,29 @@
         const T = window.THREE;
         const rect = stageEl.getBoundingClientRect();
         if (!rect.width || !rect.height) throw new Error('舞台尺寸为 0');
+        let stageWidth = rect.width, stageHeight = rect.height;
+        let visible = true, contextLost = false;
+        let visibilityObserver = null, resumeTimer = null, hoverFrame = null, hoverPoint = null;
+        let settleUntil = 0;
+        function pixelRatio() {
+          return Math.min(window.devicePixelRatio || 1, stageWidth < 600 ? 1.25 : 1.5,
+            Math.sqrt(700000 / (stageWidth * stageHeight)));
+        }
+        function requestRender(restart) {
+          if (restart !== false) settleUntil = performance.now() + 650;
+          if (!destroyed && !contextLost && visible && !document.hidden && raf === null) {
+            raf = requestAnimationFrame(animate);
+          }
+        }
+        function stopFrame() {
+          if (raf !== null) cancelAnimationFrame(raf);
+          raf = null;
+          clearTimeout(resumeTimer);
+          resumeTimer = null;
+        }
 
         renderer = new T.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setPixelRatio(pixelRatio());
         renderer.setSize(rect.width, rect.height, false);
         renderer.outputColorSpace = T.SRGBColorSpace;
         renderer.toneMapping = T.ACESFilmicToneMapping;
@@ -649,6 +671,9 @@
 
         const dust = makeDust(T);
         scene.add(dust);
+        world.traverse((obj) => {
+          if (obj.isMesh && obj !== shaft.elevator) { obj.updateMatrix(); obj.matrixAutoUpdate = false; }
+        });
 
         const cam = {
           theta: 0.72,
@@ -710,6 +735,7 @@
             cam.radius = cam.radiusT;
             cam.target.copy(cam.targetT);
           }
+          requestRender();
         }
 
         function updateCameraTarget(immediate) {
@@ -719,6 +745,7 @@
             cam.radius = cam.radiusT;
             cam.target.copy(cam.targetT);
           }
+          requestRender();
         }
 
         function resetView() {
@@ -727,6 +754,7 @@
           cam.targetT.set(mode === 'barrier' ? (explodeTarget > 0.5 ? 5.3 : 3.8) : 0, mode === 'barrier' ? -3.1 : -2.0, mode === 'barrier' ? 2.0 : 0);
           cam.radiusT = fitRadius(mode, explodeTarget > 0.5);
           cam.autoPause = performance.now() + 1800;
+          requestRender();
         }
 
         function focusSelected() {
@@ -739,6 +767,7 @@
           cam.phiT = 1.18;
           cam.radiusT = clamp(fitRadius('barrier', true) * 0.72, 5.4, 14);
           cam.autoPause = performance.now() + 3500;
+          requestRender();
         }
 
         function focusRepository() {
@@ -747,6 +776,7 @@
           cam.targetT.set(0.2, -4.0, 0.4);
           cam.radiusT = clamp(fitRadius('wide', false) * 0.62, 7, 14);
           cam.autoPause = performance.now() + 3000;
+          requestRender();
         }
 
         function nudge(key) {
@@ -755,13 +785,19 @@
           else if (key === 'arrowup') cam.phiT = clamp(cam.phiT - 0.1, 0.48, 2.5);
           else if (key === 'arrowdown') cam.phiT = clamp(cam.phiT + 0.1, 0.48, 2.5);
           cam.autoPause = performance.now() + 3000;
+          requestRender();
         }
 
         function zoomBy(k) {
           cam.radiusT = clamp(cam.radiusT * k, 5, 30);
+          requestRender();
         }
 
-        function setAuto(v) { cam.auto = !!v; }
+        function setAuto(v) {
+          cam.auto = !!v;
+          clearTimeout(resumeTimer); resumeTimer = null;
+          requestRender();
+        }
         function setModeExternal(next) { applyMode(next, false); }
 
         function setSelected3D(id) {
@@ -774,6 +810,7 @@
             rec.anchor.getWorldPosition(v);
             halo.position.copy(v);
           }
+          requestRender();
         }
 
         /* ---------- 交互 ---------- */
@@ -787,14 +824,31 @@
           const w = stageEl.clientWidth;
           const h = stageEl.clientHeight;
           if (!w || !h) return;
+          stageWidth = w; stageHeight = h;
+          renderer.setPixelRatio(pixelRatio());
           renderer.setSize(w, h, false);
           camera.aspect = w / h;
           camera.updateProjectionMatrix();
           cam.baseRadius = fitRadius('wide', false);
           cam.radiusT = fitRadius(mode, explodeTarget > 0.5);
+          requestRender();
         }
-        resizeObserver = new ResizeObserver(resize);
-        resizeObserver.observe(stageEl);
+        if (typeof ResizeObserver === 'function') {
+          resizeObserver = new ResizeObserver(resize);
+          resizeObserver.observe(stageEl);
+        } else on(window, 'resize', resize);
+        if (typeof IntersectionObserver === 'function') {
+          visibilityObserver = new IntersectionObserver((entries) => {
+            visible = entries[0].isIntersecting;
+            if (visible) requestRender(); else stopFrame();
+          });
+          visibilityObserver.observe(stageEl);
+        }
+        on(document, 'visibilitychange', () => { if (document.hidden) stopFrame(); else requestRender(); });
+        on(canvas, 'webglcontextlost', (event) => {
+          event.preventDefault(); contextLost = true; stopFrame();
+          canvas.hidden = true; loadingEl.hidden = true; fallbackEl.hidden = false;
+        });
 
         const ray = new T.Raycaster();
         function raycast(clientX, clientY) {
@@ -813,6 +867,14 @@
           hovered = id;
           stageEl.classList.toggle('is-hovering', !!id);
           root.querySelectorAll('.ri-item').forEach((b) => b.classList.toggle('is-hover', b.dataset.part === id));
+        }
+        function queueHover(x, y) {
+          hoverPoint = [x, y];
+          if (hoverFrame !== null) return;
+          hoverFrame = requestAnimationFrame(() => {
+            hoverFrame = null;
+            if (!destroyed && !contextLost && hoverPoint) hoverAt(hoverPoint[0], hoverPoint[1]);
+          });
         }
 
         function onPointerDown(e) {
@@ -837,7 +899,7 @@
 
         function onPointerMove(e) {
           if (!cam.pointers.has(e.pointerId)) {
-            if (e.pointerType === 'mouse' && !fromUI(e)) hoverAt(e.clientX, e.clientY);
+            if (e.pointerType === 'mouse' && !fromUI(e)) queueHover(e.clientX, e.clientY);
             return;
           }
           cam.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -849,6 +911,7 @@
               cam.radiusT = clamp(cam.radiusT * (1 + (k - 1) * 0.65), 5, 30);
             }
             cam.pinchDist = dist;
+            requestRender();
             return;
           }
           if (e.pointerId !== cam.pointerId || !cam.dragging) return;
@@ -860,6 +923,7 @@
           cam.thetaT -= dx * 0.0055;
           cam.phiT = clamp(cam.phiT - dy * 0.0045, 0.48, 2.5);
           cam.autoPause = performance.now() + 5000;
+          requestRender();
         }
 
         function onPointerUp(e) {
@@ -886,6 +950,7 @@
             cam.dragging = true;
             cam.moved = 99;
           }
+          requestRender();
         }
 
         function onWheel(e) {
@@ -893,6 +958,7 @@
           e.preventDefault();
           cam.radiusT = clamp(cam.radiusT * (1 + Math.sign(e.deltaY) * 0.09), 5, 30);
           cam.autoPause = performance.now() + 4000;
+          requestRender();
         }
 
         on(stageEl, 'pointerdown', onPointerDown);
@@ -900,6 +966,7 @@
         on(stageEl, 'pointerup', onPointerUp);
         on(stageEl, 'pointercancel', onPointerUp);
         on(stageEl, 'pointerleave', () => {
+          hoverPoint = null;
           if (cam.dragging) return;
           hovered = null;
           stageEl.classList.remove('is-hovering');
@@ -932,8 +999,8 @@
 
         const tmp = new T.Vector3();
         function updateLabels() {
-          const w = stageEl.clientWidth;
-          const h = stageEl.clientHeight;
+          const w = stageWidth;
+          const h = stageHeight;
           labelEls.forEach((item) => {
             const rec = partsMap[item.id];
             if (!rec || !rec.anchor) { item.el.style.display = 'none'; return; }
@@ -966,8 +1033,8 @@
           const show = labelsOn && mode === 'wide';
           infraEl.style.display = show ? '' : 'none';
           if (!show) return;
-          const w = stageEl.clientWidth;
-          const h = stageEl.clientHeight;
+          const w = stageWidth;
+          const h = stageHeight;
           infraEls.forEach((el) => {
             const point = infraPoints[el.dataset.infra];
             if (!point) return;
@@ -990,24 +1057,32 @@
           halo.scale.set(s, s, 1);
         }
 
-        let last = performance.now();
+        let last = null;
+        let lastDraw = 0;
         function animate(now) {
-          if (destroyed) return;
-          raf = requestAnimationFrame(animate);
-          const dt = Math.min(0.05, (now - last) / 1000 || 0.016);
+          raf = null;
+          if (destroyed || contextLost || !visible || document.hidden) return;
+          const spinning = cam.auto && !cam.dragging && now > cam.autoPause;
+          if (spinning && now - lastDraw < 32) { requestRender(false); return; }
+          const elapsed = last === null ? 1 / 60 : Math.min(0.5, (now - last) / 1000);
+          const dt = Math.min(0.05, elapsed);
           last = now;
+          lastDraw = now;
 
-          if (explodeTarget > explodeCurrent) explodeCurrent = Math.min(explodeTarget, explodeCurrent + dt * 2.2);
-          else if (explodeTarget < explodeCurrent) explodeCurrent = Math.max(explodeTarget, explodeCurrent - dt * 2.2);
+          const previousExplode = explodeCurrent;
+          const settled = reduceMotion || (!spinning && !cam.dragging && now >= settleUntil);
+          if (settled) explodeCurrent = explodeTarget;
+          else if (explodeTarget > explodeCurrent) explodeCurrent = Math.min(explodeTarget, explodeCurrent + elapsed * 2.2);
+          else if (explodeTarget < explodeCurrent) explodeCurrent = Math.max(explodeTarget, explodeCurrent - elapsed * 2.2);
 
           const e = explodeCurrent;
-          animatables.forEach((obj) => {
+          if (e !== previousExplode) animatables.forEach((obj) => {
             const local = delayEase(e, obj.userData.delay);
             obj.position.copy(obj.userData.basePos).addScaledVector(obj.userData.exp, local);
           });
 
-          if (cam.auto && !cam.dragging && now > cam.autoPause) cam.thetaT += dt * 0.035;
-          const damp = 1 - Math.exp(-dt * 7);
+          if (spinning) cam.thetaT += dt * 0.035;
+          const damp = settled || cam.dragging ? 1 : 1 - Math.exp(-elapsed * 14);
           cam.theta += (cam.thetaT - cam.theta) * damp;
           cam.phi += (cam.phiT - cam.phi) * damp;
           cam.radius += (cam.radiusT - cam.radius) * damp;
@@ -1021,14 +1096,27 @@
           );
           camera.lookAt(cam.target);
 
-          zoomEl.textContent = (cam.baseRadius / cam.radius).toFixed(2) + '×';
-          shaft.elevator.position.y = -0.95 + Math.sin(now * 0.00035) * 1.55;
-          barrier.glassGlow.material.opacity = 0.4 + Math.sin(now * 0.0022) * 0.06;
-          dust.rotation.y += dt * 0.008;
+          const zoomText = (cam.baseRadius / cam.radius).toFixed(2) + '×';
+          if (zoomEl.textContent !== zoomText) zoomEl.textContent = zoomText;
+          if (spinning) {
+            shaft.elevator.position.y = -0.95 + Math.sin(now * 0.00035) * 1.55;
+            barrier.glassGlow.material.opacity = 0.4 + Math.sin(now * 0.0022) * 0.06;
+            dust.rotation.y += dt * 0.008;
+          }
           updateLabels();
           updateInfraLabels();
           updateHalo();
           renderer.render(scene, camera);
+          const moving = Math.abs(cam.thetaT - cam.theta) > 0.0002 || Math.abs(cam.phiT - cam.phi) > 0.0002 ||
+            Math.abs(cam.radiusT - cam.radius) > 0.001 || cam.target.distanceToSquared(cam.targetT) > 0.000001 ||
+            explodeCurrent !== explodeTarget;
+          if (spinning || moving) requestRender(false);
+          else {
+            last = null;
+            if (cam.auto && !cam.dragging && resumeTimer === null) {
+              resumeTimer = setTimeout(() => { resumeTimer = null; requestRender(); }, Math.max(0, cam.autoPause - now));
+            }
+          }
         }
 
         const api = {
@@ -1041,21 +1129,27 @@
           updateCameraTarget,
           nudge,
           zoomBy,
+          invalidate: requestRender,
           dispose() {
             destroyed = true;
-            if (raf) cancelAnimationFrame(raf);
-            raf = null;
+            stopFrame();
+            if (hoverFrame !== null) cancelAnimationFrame(hoverFrame);
             if (resizeObserver) resizeObserver.disconnect();
+            if (visibilityObserver) visibilityObserver.disconnect();
+            const geometries = new Set(), materials = new Set(), textures = new Set();
             scene.traverse((obj) => {
-              if (obj.geometry) obj.geometry.dispose();
+              if (obj.geometry) geometries.add(obj.geometry);
               if (obj.material) {
                 const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
                 mats.forEach((m) => {
-                  if (m.map) m.map.dispose();
-                  m.dispose();
+                  if (m.map) textures.add(m.map);
+                  materials.add(m);
                 });
               }
             });
+            geometries.forEach((g) => g.dispose());
+            textures.forEach((t) => t.dispose());
+            materials.forEach((m) => m.dispose());
             if (envRT) envRT.dispose();
             renderer.dispose();
           }
@@ -1064,7 +1158,7 @@
         resize();
         applyMode('wide', true);
         setSelected3D(selected);
-        raf = requestAnimationFrame(animate);
+        requestRender();
         return api;
       }
 
@@ -1143,9 +1237,10 @@
 
       function makeEnvTexture(T) {
         const c = document.createElement('canvas');
-        c.width = 1024;
-        c.height = 512;
+        c.width = 512;
+        c.height = 256;
         const g = c.getContext('2d');
+        g.scale(0.5, 0.5);
         const bg = g.createLinearGradient(0, 0, 0, 512);
         bg.addColorStop(0, '#04080d');
         bg.addColorStop(0.38, '#11242a');
@@ -1293,25 +1388,31 @@
         return { group };
       }
 
+      // 同一几何与材质的重复设施只提交一次绘制，仍保留整体拾取能力。
+      function instances(T, geometry, material, positions, rotation) {
+        const mesh = new T.InstancedMesh(geometry, material, positions.length);
+        const transform = new T.Object3D();
+        if (rotation) transform.rotation.set(rotation[0], rotation[1], rotation[2]);
+        positions.forEach((position, i) => {
+          transform.position.set(position[0], position[1], position[2]);
+          transform.updateMatrix();
+          mesh.setMatrixAt(i, transform.matrix);
+        });
+        mesh.instanceMatrix.needsUpdate = true;
+        return mesh;
+      }
+
       function makeShaft(T, mats) {
         const group = new T.Group();
         const x = -2.55;
         const z = -2.0;
         const railMat = new T.MeshStandardMaterial({ color: 0x9eb1c2, metalness: 0.9, roughness: 0.28 });
-        [-1, 1].forEach((sx) => {
-          [-1, 1].forEach((sz) => {
-            const rail = new T.Mesh(new T.BoxGeometry(0.025, 4.25, 0.025), railMat);
-            rail.position.set(x + sx * 0.16, -2.12, z + sz * 0.16);
-            group.add(rail);
-          });
-        });
+        const rails = [];
+        [-1, 1].forEach((sx) => [-1, 1].forEach((sz) => rails.push([x + sx * 0.16, -2.12, z + sz * 0.16])));
+        group.add(instances(T, new T.BoxGeometry(0.025, 4.25, 0.025), railMat, rails));
         const ringMat = new T.MeshBasicMaterial({ color: 0x62e6b0, transparent: true, opacity: 0.36 });
-        for (let i = 0; i < 8; i++) {
-          const ring = new T.Mesh(new T.TorusGeometry(0.17, 0.004, 4, 22), ringMat);
-          ring.rotation.x = Math.PI / 2;
-          ring.position.set(x, -0.2 - i * 0.55, z);
-          group.add(ring);
-        }
+        group.add(instances(T, new T.TorusGeometry(0.17, 0.004, 4, 22), ringMat,
+          Array.from({ length: 8 }, (_, i) => [x, -0.2 - i * 0.55, z]), [Math.PI / 2, 0, 0]));
         const elevator = new T.Mesh(
           new T.BoxGeometry(0.23, 0.32, 0.23),
           new T.MeshStandardMaterial({ color: 0xc9a25c, metalness: 0.7, roughness: 0.35, emissive: 0x3a1b02, emissiveIntensity: 0.4 })
@@ -1359,17 +1460,16 @@
         [-1.35, -0.25, 0.85].forEach((z) => tunnel(0.2, z, 4.4, 'x'));
 
         const canisters = new T.Group();
+        const positions = [], bands = [];
         [-1.35, -0.25, 0.85].forEach((z) => {
           [-1.05, 0.25, 1.55].forEach((x) => {
-            const can = new T.Mesh(new T.CylinderGeometry(0.11, 0.11, 0.48, 16), mats.copperMat);
-            can.position.set(x, -4.07, z);
-            canisters.add(can);
-            const band = new T.Mesh(new T.TorusGeometry(0.115, 0.012, 5, 20), new T.MeshBasicMaterial({ color: 0xffc857 }));
-            band.rotation.x = Math.PI / 2;
-            band.position.set(x, -3.98, z);
-            canisters.add(band);
+            positions.push([x, -4.07, z]);
+            bands.push([x, -3.98, z]);
           });
         });
+        canisters.add(instances(T, new T.CylinderGeometry(0.11, 0.11, 0.48, 16), mats.copperMat, positions));
+        canisters.add(instances(T, new T.TorusGeometry(0.115, 0.012, 5, 20),
+          new T.MeshBasicMaterial({ color: 0xffc857 }), bands, [Math.PI / 2, 0, 0]));
         group.add(canisters);
 
         // 竖井到主巷道的连接线
@@ -1386,14 +1486,13 @@
 
         // 巷道环
         const ringMat = new T.MeshBasicMaterial({ color: 0x77e4bf, transparent: true, opacity: 0.26 });
+        const ringPositions = [];
         [-1.35, -0.25, 0.85].forEach((z) => {
           [-1.8, 0.2, 2.1].forEach((x) => {
-            const ring = new T.Mesh(new T.TorusGeometry(0.345, 0.005, 4, 24), ringMat);
-            ring.rotation.y = Math.PI / 2;
-            ring.position.set(x, -4.0, z);
-            group.add(ring);
+            ringPositions.push([x, -4.0, z]);
           });
         });
+        group.add(instances(T, new T.TorusGeometry(0.345, 0.005, 4, 24), ringMat, ringPositions, [0, Math.PI / 2, 0]));
         return { group, canisters };
       }
 

@@ -282,6 +282,7 @@ window.NEG = window.NEG || {};
   const Sound = (function () {
     let ctx = null;
     let master = null;
+    let warming = false;
 
     function ensure() {
       try {
@@ -293,13 +294,28 @@ window.NEG = window.NEG || {};
           master.gain.value = 0.55;
           master.connect(ctx.destination);
         }
-        if (ctx.state === 'suspended') ctx.resume();
+        if (ctx.state === 'suspended') {
+          const resumed = ctx.resume();
+          if (resumed && typeof resumed.catch === 'function') resumed.catch(() => {});
+        }
         return ctx;
       } catch (e) { return null; }
     }
 
     function enabled() {
       return !!(data.settings && data.settings.sound);
+    }
+
+    function warmup() {
+      if (!enabled() || ctx || warming) return;
+      warming = true;
+      // 音频设备首次启动可能阻塞主线程，先让点击后的页面完成一帧绘制。
+      const start = () => setTimeout(() => {
+        warming = false;
+        if (enabled()) ensure();
+      }, 0);
+      if (typeof requestAnimationFrame === 'function') requestAnimationFrame(start);
+      else start();
     }
 
     function tone(freq, startAt, dur, opts) {
@@ -363,12 +379,14 @@ window.NEG = window.NEG || {};
     return {
       play(name) {
         if (!enabled()) return false;
+        if (!ctx) { warmup(); return false; }
         const c = ensure();
         if (!c) return false;
         const fn = bank[name] || bank.click;
         try { fn(c, c.currentTime + 0.005); return true; } catch (e) { return false; }
       },
       ensure,
+      warmup,
       toggle() {
         data.settings.sound = !enabled();
         store.save();
@@ -1150,7 +1168,7 @@ window.NEG = window.NEG || {};
 
     // 首次音频解锁
     const unlockAudio = () => {
-      Sound.ensure();
+      Sound.warmup();
       document.removeEventListener('pointerdown', unlockAudio, true);
       document.removeEventListener('keydown', unlockAudio, true);
     };

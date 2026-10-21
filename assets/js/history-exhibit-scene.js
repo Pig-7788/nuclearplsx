@@ -142,7 +142,7 @@ window.NEG = window.NEG || {};
         if (disposed || failed || document.hidden) return;
         const rect = canvas.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
-        const ratio = Math.min(window.devicePixelRatio || 1, 2);
+        const ratio = Math.min(window.devicePixelRatio || 1, 1.5, Math.sqrt(700000 / (rect.width * rect.height)));
         const width = Math.max(1, Math.round(rect.width * ratio)), height = Math.max(1, Math.round(rect.height * ratio));
         if (canvas.width !== width || canvas.height !== height) { canvas.width = width; canvas.height = height; }
         gl.viewport(0, 0, width, height);
