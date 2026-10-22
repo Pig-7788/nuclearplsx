@@ -86,6 +86,8 @@ window.NEG = window.NEG || {};
         '<span class="badge badge-cyan" data-built>0 / ' + total + '</span>' +
       '</div>' +
       (intro ? '<p class="game-intro">' + esc(intro) + '</p>' : '') +
+      '<div class="pb-task"><p data-task role="status"></p>' +
+        '<button class="btn btn-primary btn-sm" type="button" data-place-selected disabled>放入所选部件</button></div>' +
       '<div class="pb-stage" data-stage>' +
         '<div class="pb-svg-wrap">' + NEG.svg.plant() + '</div>' +
       '</div>' +
@@ -129,7 +131,7 @@ window.NEG = window.NEG || {};
     /* 建造顺序按回路分组:一回路(含安全壳)→ 二回路 → 三回路 → 并网(主变压器)
        同一回路内任意顺序都算对,整组建完才进入下一组 */
     const GROUPS = [
-      { id: 1, name: '一回路', color: '#ffab3d' },
+      { id: 1, name: '核岛（一回路与安全壳）', color: '#ffab3d' },
       { id: 2, name: '二回路', color: '#38e1ff' },
       { id: 3, name: '三回路', color: '#3ef0a2' },
       { id: 4, name: '并网', color: '#ffc857' }
@@ -223,6 +225,8 @@ window.NEG = window.NEG || {};
     const builtEl = container.querySelector('[data-built]');
     const loopsEl = container.querySelector('[data-loops]');
     const footEl = container.querySelector('[data-foot]');
+    const taskEl = container.querySelector('[data-task]');
+    const placeBtn = container.querySelector('[data-place-selected]');
 
     if (!svg) {
       container.innerHTML = '<div class="empty">工程图未加载,请刷新页面。</div>';
@@ -331,6 +335,20 @@ window.NEG = window.NEG || {};
         card.classList.toggle('is-selected', active);
         card.setAttribute('aria-pressed', String(active));
       });
+      svg.querySelectorAll('.slot-group').forEach(group => {
+        group.classList.toggle('is-selected-target', !!selected && selected.type === 'part' && selected.id === group.dataset.slot);
+      });
+      const group = currentGroup();
+      const remaining = group ? groupParts(group.id).filter(part => !built.has(part.id)) : [];
+      const part = selected && selected.type === 'part' ? parts.find(item => item.id === selected.id) : null;
+      const canPlace = !!part && !!group && !built.has(part.id) && groupIndexOf(part) === group.id;
+      if (taskEl) taskEl.textContent = remaining.length
+        ? '当前还需放入：' + remaining.map(item => item.short).join('、') + '。' + (part && !canPlace ? '请先完成这些部件。' : '')
+        : total + ' 个核心部件已就位。';
+      if (placeBtn) {
+        placeBtn.disabled = !canPlace || done;
+        placeBtn.textContent = part ? '放入' + part.short : '放入所选部件';
+      }
     }
 
     function selectPart(type, id) {
@@ -367,6 +385,12 @@ window.NEG = window.NEG || {};
         hit.setAttribute('class', 'slot-hit');
         hit.setAttribute('aria-hidden', 'true');
         group.appendChild(hit);
+        // Give the labelled enclosure its own large target without covering inner equipment.
+        const labelHit = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        for (const [name, value] of Object.entries({ x: 305, y: 72, width: 120, height: 48, rx: 8, class: 'slot-label-hit', 'aria-hidden': 'true' })) {
+          labelHit.setAttribute(name, value);
+        }
+        group.insertBefore(labelHit, group.querySelector('.part-label'));
       }
       const activate = () => {
         if (destroyed || done || built.has(group.dataset.slot)) return;
@@ -385,10 +409,22 @@ window.NEG = window.NEG || {};
       });
     });
 
+    if (placeBtn) listen(placeBtn, 'click', () => {
+      if (selected && selected.type === 'part') tryBuild(selected.id);
+    });
+
     /* 指针落在哪个槽位上(重叠时取面积最小的那个) */
     function slotAt(x, y) {
       let best = null;
       svg.querySelectorAll('.slot-group').forEach((g) => {
+        const labelHit = g.querySelector('.slot-label-hit');
+        if (labelHit) {
+          const label = labelHit.getBoundingClientRect();
+          if (x >= label.left && x <= label.right && y >= label.top && y <= label.bottom) {
+            best = { id: g.dataset.slot, area: label.width * label.height };
+            return;
+          }
+        }
         const shape = g.querySelector('.slot-hit') || g.querySelector('.slot');
         if (!shape) return;
         const r = shape.getBoundingClientRect();
@@ -430,7 +466,6 @@ window.NEG = window.NEG || {};
           slotEl.classList.add('is-wrong');
           later(() => slotEl.classList.remove('is-wrong'), 340);
         }
-        const target = svg.querySelector('.slot-group[data-slot="' + partId + '"] .slot-label');
         say('「' + part.short + '」不属于这个位置。');
         ui.toast('位置不对：把「' + part.short + '」拖到它自己的虚线框', 'error');
         return;
@@ -485,7 +520,7 @@ window.NEG = window.NEG || {};
         if (live && announce && !liveState[id]) {
           const loop = loops.filter((l) => l.id === id)[0];
           if (loop) {
-            ui.toast(loop.name + '已贯通：' + loop.desc, 'success', { duration: 4200 });
+            if (variant === 'page') ui.toast(loop.name + '已贯通：' + loop.desc, 'success', { duration: 4200 });
             if (footEl) say(loop.name + '已贯通。');
           }
           audio.play('build');
@@ -508,8 +543,9 @@ window.NEG = window.NEG || {};
         audio.play('wrong');
         if (U.vibrate) U.vibrate([15, 30, 15]);
         if (!noScore) store.addScore(-2, 'city');
-        ui.toast('顺序不对：先把「' + g.name + '」建完', 'error');
-        say('顺序不对：先把「' + g.name + '」这一组建完。');
+        const needed = groupParts(g.id).filter(item => !built.has(item.id)).map(item => item.short).join('、');
+        if (variant === 'page') ui.toast('请先放入：' + needed, 'error');
+        say('还需先放入：' + needed + '。');
         if (stepsEl) {
           const step = stepsEl.querySelector('.is-current');
           if (step) {

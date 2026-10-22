@@ -244,7 +244,7 @@ window.NEG = window.NEG || {};
         const mastered = result.filter((r) => r.useWrong === 0 && r.explainWrong === 0).length;
         const corrected = result.filter((r) => r.useWrong + r.explainWrong > 0).length;
         container.querySelector('.ls-body').innerHTML =
-          '<div class="ls-main">' +
+          '<div class="ls-main ls-summary">' +
             '<div class="ls-card" style="flex:0 0 auto">' +
               '<div class="ls-ask">服务站小结：' + esc(g.summary_title || '你已完成三个生活案例') + '</div>' +
               '<p class="ls-note" style="margin-top:4px">同一个“核”字，在医院、超市和工厂里用的是完全不同的能力：示踪显像、辐照处理、无损检测。判断用途，比记住名词更重要。</p>' +

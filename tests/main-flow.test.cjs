@@ -117,7 +117,7 @@ function runtime() {
   };
   const root = new Element();
   return {
-    NEG, window, state, root, timers, mode, savedStates, saves: () => saves,
+    NEG, window, document, state, root, timers, mode, savedStates, saves: () => saves,
     render() { return mode.render(root, ctx); },
     click(selector) {
       const element = root.querySelector(selector);
@@ -182,6 +182,49 @@ function asyncLesson(env) {
   env.click('[data-action="next"]');
   return { attempts, cleanup };
 }
+
+test('reading size is saved before entry and retained when opening a chapter', () => {
+  const env = runtime();
+  const cleanup = env.render();
+  const select = env.root.querySelector('[data-reading-size]');
+  assert.equal(select.value, 'standard');
+  select.value = 'large';
+  select.emit('change');
+  assert.equal(env.state.settings.readingSize, 'large');
+  env.click('[data-resume]');
+  assert.equal(env.root.querySelector('[data-reading-size]').value, 'large');
+  cleanup();
+});
+
+test('changing reading size during a game preserves the active game and its progress', () => {
+  const env = runtime();
+  const { attempts, cleanup } = asyncLesson(env);
+  const game = env.root.querySelector('#activeGame');
+  const select = env.root.querySelector('[data-reading-size]');
+  select.value = 'extra';
+  select.emit('change');
+  assert.equal(env.state.settings.readingSize, 'extra');
+  assert.equal(env.root.querySelector('#activeGame'), game);
+  assert.equal(attempts.length, 1);
+  assert.equal(attempts[0].cleaned, 0);
+  cleanup();
+});
+
+test('keyboard navigation scrolls enlarged reading content before advancing', () => {
+  const env = runtime();
+  const cleanup = env.render();
+  env.click('[data-resume]');
+  const text = env.root.querySelector('#mainText');
+  text.clientHeight = 200;
+  text.scrollHeight = 700;
+  text.scrollTop = 0;
+  env.document.emit('keydown', { key: 'PageDown' });
+  assert.equal(text.scrollTop, 170);
+  assert.equal(env.state.modes.main.panelIndex, 0);
+  env.document.emit('keydown', { key: 'ArrowUp' });
+  assert.equal(text.scrollTop, 122);
+  cleanup();
+});
 
 test('resize during a game preserves the game and skipping releases it before late completion can write progress', () => {
   const env = runtime();

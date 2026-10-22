@@ -270,7 +270,7 @@ window.NEG = window.NEG || {};
                 (allResolved ? '已完成回应' : '还有 ' + unresolved + ' 题未完成') + '</span>' +
             '</div>' +
             '<div class="ls-body">' +
-              '<div class="pr-summary">' +
+              '<div class="pr-summary ls-summary">' +
                 '<div class="ls-chips">' +
                   '<span class="ls-chip">已掌握 <b>' + mastered.length + '</b></span>' +
                   '<span class="ls-chip">已纠正 <b>' + corrected.length + '</b></span>' +
