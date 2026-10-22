@@ -1,3 +1,9 @@
+import NEG from './runtime.js';
+import './task-manager.js';
+import { routeCatalog, CONTENT_COUNTS } from './catalog.js';
+import { loadRoute } from './routes.js';
+
+let start;
 /* ============================================================
    核纪元 · 核心运行时
    - 状态与本地存档
@@ -10,7 +16,8 @@ window.NEG = window.NEG || {};
   'use strict';
 
   NEG.data = NEG.data || {};
-  NEG.version = '1.2.0';
+  routeCatalog.forEach(route => NEG.tasks.define(route));
+  NEG.version = '1.3.0';
 
   /* ==========================================================
      1. 图标库
@@ -219,7 +226,7 @@ window.NEG = window.NEG || {};
           d.modes.repository.viewed = Array.isArray(d.modes.repository.viewed) ? d.modes.repository.viewed : [];
         }
       }
-    } catch (e) { /* 隐私模式 / file:// 限制时静默降级 */ }
+    } catch (e) { /* 存储受限时静默降级 */ }
     return d;
   }
 
@@ -227,12 +234,16 @@ window.NEG = window.NEG || {};
   let data = load();
   let saveTimer = null;
 
+  function flush() {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* noop */ }
+  }
+
   function persist() {
     data.updatedAt = Date.now();
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(() => {
-      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch (e) { /* noop */ }
-    }, 120);
+    saveTimer = setTimeout(flush, 120);
   }
 
   function notify(reason) {
@@ -272,9 +283,11 @@ window.NEG = window.NEG || {};
       notify('reset');
     },
     save: persist,
+    flush,
     defaults
   };
   NEG.store = store;
+  window.addEventListener('pagehide', flush);
 
   /* ==========================================================
      4. 音效引擎
@@ -579,7 +592,7 @@ window.NEG = window.NEG || {};
     { id: 'no_scram', title: '稳如磐石', desc: '零停堆完成一次运行任务', icon: 'shield', check: (s) => !!s.flags.noScramRun },
     { id: 'dose_explorer', title: '剂量雷达', desc: '查看 20 种辐射剂量', icon: 'info', check: (s) => (s.modes.dose.viewed || []).length >= 20 },
     { id: 'china_scholar', title: '核电通', desc: '浏览全部中国核电里程碑', icon: 'flag', check: (s) => {
-      const total = (NEG.data.china && NEG.data.china.timeline || []).length;
+      const total = (NEG.data.china && NEG.data.china.timeline || []).length || CONTENT_COUNTS.chinaTimeline;
       return total > 0 && (s.modes.china.viewed || []).length >= total;
     } },
     { id: 'explorer', title: '全栈体验', desc: '体验全部 6 个实验室', icon: 'home', check: (s) => ['rumor', 'city', 'console', 'dose', 'china', 'repository']
@@ -802,86 +815,90 @@ window.NEG = window.NEG || {};
   /* ==========================================================
      8. 路由（模块注册 / 挂载由 task-manager.js 统一管理）
      ========================================================== */
-  let suppressHash = false;
+  let navigation = 0;
+
+  function activateNavigation(id) {
+    ui.qsa('.nav-link').forEach(link => {
+      const active = link.dataset.mode === id;
+      link.classList.toggle('is-active', active);
+      if (active) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+  }
 
   const router = {
     currentId: null,
+    pendingId: null,
+    pending: null,
     go(id, opts) {
       const o = opts || {};
-      const def = NEG.tasks.get(id) || NEG.tasks.get('home');
-      if (!def) return;
-      if (!o.force && !o.reload && router.currentId === def.id) {
-        // 同模块重复点击：回到顶部即可
+      const target = NEG.tasks.get(id) || NEG.tasks.get('home');
+      if (!target) return Promise.resolve(false);
+      if (router.pendingId === target.id && !o.reload) return router.pending;
+      if (!o.force && !o.reload && router.currentId === target.id && !router.pendingId) {
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        return;
+        return Promise.resolve(true);
       }
-
-      // 防止上一步残留的弹窗 / 提示阻挡交互
-      document.querySelectorAll('.overlay').forEach((n) => n.remove());
-      const toastRoot = document.getElementById('toastRoot');
-      if (toastRoot) toastRoot.innerHTML = '';
+      const ticket = ++navigation;
+      router.pendingId = target.id;
+      router.currentId = null;
+      NEG.tasks.unmount();
+      document.querySelectorAll('.overlay').forEach(node => node.remove());
+      const toasts = document.getElementById('toastRoot');
+      if (toasts) toasts.innerHTML = '';
       document.body.style.overflow = '';
-
       const view = document.getElementById('view');
       view.scrollTop = 0;
       window.scrollTo({ top: 0, behavior: 'auto' });
+      activateNavigation(target.id);
+      document.title = target.id === 'home' ? '核纪元 · 交互式核能实验室' : target.title + ' · 核纪元';
+      try { history.replaceState(null, '', '#/' + target.id); } catch (error) { /* embedded preview */ }
+      view.setAttribute('aria-busy', 'true');
+      view.innerHTML = '<div class="route-message" role="status"><p>正在打开' + U.esc(target.title) + '…</p></div>';
 
-      const ctx = {
-        go: (nid, nopts) => router.go(nid, nopts),
-        store,
-        data: NEG.data,
-        ui,
-        audio: Sound,
-        util: U,
-        icon: NEG.icon,
-        achievements,
-        tasks: NEG.tasks
-      };
-
-      // TaskManager：卸载上一模块 -> 清空视图 -> 渲染新模块（含异常兜底）
-      NEG.tasks.mount(def.id, view, ctx);
-      view.classList.remove('is-entering');
-      void view.offsetWidth;
-      view.classList.add('is-entering');
-      router.currentId = def.id;
-      NEG.router.currentId = def.id;
-
-      // 导航高亮 + 小屏时把当前项滚入可视区
-      let activeLink = null;
-      ui.qsa('.nav-link').forEach((a) => {
-        const active = a.dataset.mode === def.id;
-        a.classList.toggle('is-active', active);
-        if (active) { a.setAttribute('aria-current', 'page'); activeLink = a; }
-        else a.removeAttribute('aria-current');
+      const promise = loadRoute(target.id).then(() => {
+        if (ticket !== navigation) return false;
+        const def = NEG.tasks.get(target.id);
+        if (!def || typeof def.render !== 'function') throw new Error('Route did not register: ' + target.id);
+        const ctx = {
+          go: (next, options) => router.go(next, options), store, data: NEG.data,
+          ui, audio: Sound, util: U, icon: NEG.icon, achievements, tasks: NEG.tasks
+        };
+        if (!NEG.tasks.mount(def.id, view, ctx)) throw new Error('Route could not mount: ' + target.id);
+        if (ticket !== navigation) { NEG.tasks.unmount(); return false; }
+        router.currentId = def.id;
+        view.focus({ preventScroll: true });
+        if (def.id !== 'home') {
+          store.set(state => {
+            if (!state.modes[def.id]) state.modes[def.id] = { plays: 0 };
+            state.modes[def.id].plays = (state.modes[def.id].plays || 0) + 1;
+          }, 'route');
+          achievements.checkAll();
+        }
+        store.set(state => { state.lastMode = def.id; }, 'lastMode');
+        return true;
+      }).catch(error => {
+        if (ticket !== navigation) return false;
+        console.warn('[Router] Could not open ' + target.id, error);
+        view.innerHTML = '<div class="route-message" role="alert"><h2>暂时无法打开' + U.esc(target.title) + '</h2>' +
+          '<p>请检查连接后重试，你的学习进度已保留。</p><button type="button" class="btn btn-primary" data-route-retry>重新加载</button>' +
+          '<button type="button" class="btn btn-quiet" data-route-home>返回首页</button></div>';
+        // A reload also clears the browser's failed ES module graph cache.
+        view.querySelector('[data-route-retry]').addEventListener('click', () => { store.flush(); location.reload(); });
+        view.querySelector('[data-route-home]').addEventListener('click', () => router.go('home'));
+        return false;
+      }).finally(() => {
+        if (ticket !== navigation) return;
+        router.pendingId = null;
+        router.pending = null;
+        view.removeAttribute('aria-busy');
       });
-      const navEl = document.getElementById('modeNav');
-      if (activeLink && navEl && navEl.scrollWidth > navEl.clientWidth + 4) {
-        const left = activeLink.offsetLeft - (navEl.clientWidth - activeLink.offsetWidth) / 2;
-        navEl.scrollTo({ left: Math.max(0, left), behavior: 'smooth' });
-      }
-
-      document.title = def.id === 'home' ? '核纪元 · 交互式核能实验室' : def.title + ' · 核纪元';
-      view.focus({ preventScroll: true });
-
-      // 记录
-      if (def.id !== 'home') {
-        store.set((s) => {
-          if (!s.modes[def.id]) s.modes[def.id] = { plays: 0 };
-          s.modes[def.id].plays = (s.modes[def.id].plays || 0) + 1;
-        }, 'route');
-        setTimeout(() => achievements.checkAll(), 400);
-      }
-      store.set((s) => { s.lastMode = def.id; }, 'lastMode');
-
-      // url
-      if (!suppressHash) {
-        try { history.replaceState(null, '', '#/' + def.id); } catch (e) { /* file:// */ }
-      } else {
-        suppressHash = false;
-      }
+      router.pending = promise;
+      return promise;
     },
     refresh() {
-      if (router.currentId) router.go(router.currentId, { reload: true });
+      const id = router.pendingId || router.currentId;
+      return id ? router.go(id, { reload: true }) : Promise.resolve(false);
     }
   };
   NEG.router = router;
@@ -939,140 +956,6 @@ window.NEG = window.NEG || {};
     });
   }
 
-  /* ==========================================================
-     启动自检 / 资源恢复
-     ========================================================== */
-  const REQUIRED_MODES = ['home', 'main', 'rumor', 'city', 'console', 'dose', 'china', 'repository'];
-  const MODE_TITLES = {
-    home: '首页', main: '认知档案', rumor: '辟谣实验室', city: '核电站建造',
-    console: '反应堆控制台', dose: '剂量实验室', china: '中国核电',
-    repository: '地质处置'
-  };
-  const MODE_SRCS = {
-    home: 'assets/js/modes/home.js',
-    main: 'assets/js/modes/main.js',
-    rumor: 'assets/js/modes/rumor.js',
-    city: 'assets/js/modes/city.js',
-    console: 'assets/js/modes/console.js',
-    dose: 'assets/js/modes/dose.js',
-    china: 'assets/js/modes/china.js',
-    repository: 'assets/js/modes/repository.js'
-  };
-  const DATA_RES = [
-    { id: 'repository', label: '深地质处置数据', src: 'assets/js/data/repository.js', check: () => !!(NEG.data.repository && NEG.data.repository.parts && NEG.data.repository.parts.length === 5) },
-    { id: 'three', label: '3D 渲染引擎', src: 'assets/vendor/three.min.js', check: () => !!(window.THREE && typeof THREE.WebGLRenderer === 'function') },
-    { id: 'rumors', label: '辟谣题库', src: 'assets/js/data/rumors.js', check: () => Array.isArray(NEG.data.rumors) && NEG.data.rumors.length > 0 },
-    { id: 'doses', label: '剂量数据', src: 'assets/js/data/doses.js', check: () => Array.isArray(NEG.data.doses) && NEG.data.doses.length > 0 },
-    { id: 'china', label: '中国核电数据', src: 'assets/js/data/china.js', check: () => !!(NEG.data.china && NEG.data.china.timeline) },
-    { id: 'reactor', label: '压水堆数据', src: 'assets/js/data/reactor.js', check: () => !!(NEG.data.plant && NEG.data.plant.parts && NEG.data.plant.parts.length === 12) },
-    { id: 'svg', label: '工程图', src: 'assets/js/svg.js', check: () => !!(NEG.svg && typeof NEG.svg.plant === 'function') },
-    { id: 'model', label: '反应堆模型', src: 'assets/js/console-model.js', check: () => !!(NEG.ReactorModel && typeof NEG.ReactorModel.create === 'function') }
-  ];
-  let bootGuardEl = null;
-  let recovering = false;
-  let pendingMode = null;
-
-  function ensureBootGuard() {
-    if (!bootGuardEl) {
-      bootGuardEl = document.createElement('div');
-      bootGuardEl.id = 'bootGuard';
-      bootGuardEl.className = 'boot-guard';
-      document.body.appendChild(bootGuardEl);
-    }
-    bootGuardEl.hidden = false;
-    return bootGuardEl;
-  }
-
-  function resourceProblems() {
-    if (!NEG.tasks || typeof NEG.tasks.get !== 'function') {
-      return [{ id: 'core', label: '模块管理器', src: 'assets/js/task-manager.js', fatal: true }];
-    }
-    const problems = [];
-    DATA_RES.forEach((r) => {
-      let ok = false;
-      try { ok = !!r.check(); } catch (e) { ok = false; }
-      if (!ok) problems.push(r);
-    });
-    REQUIRED_MODES.forEach((id) => {
-      if (!NEG.tasks.get(id)) problems.push({ id: 'mode-' + id, label: '实验室模块', src: MODE_SRCS[id] });
-    });
-    return problems;
-  }
-
-  function renderBootGuard(problems) {
-    const el = ensureBootGuard();
-    const fatal = problems.some((p) => p.fatal);
-    const names = problems.filter((p) => !p.fatal).map((p) => {
-      if (p.id.indexOf('mode-') === 0) return MODE_TITLES[p.id.slice(5)] || '模块';
-      return p.label;
-    });
-    const detail = names.length ? '（缺少：' + Array.from(new Set(names)).join('、') + '）' : '';
-    el.innerHTML =
-      '<span class="boot-guard-text">' + NEG.icon('alert', 15) +
-        '<span>部分资源未加载成功' + (fatal ? '（核心模块缺失，请刷新页面）' : detail + '，可能缺少部分功能。') + '</span></span>' +
-      '<span class="boot-guard-actions">' +
-        (fatal ? '' : '<button class="btn btn-sm btn-primary" type="button" data-bg-retry>重试加载</button>') +
-        '<button class="btn btn-sm btn-ghost" type="button" data-bg-reload>刷新页面</button>' +
-      '</span>';
-    const retry = el.querySelector('[data-bg-retry]');
-    if (retry) retry.addEventListener('click', retryMissingResources);
-    el.querySelector('[data-bg-reload]').addEventListener('click', () => location.reload());
-  }
-
-  function checkBootHealth() {
-    const problems = resourceProblems();
-    if (!problems.length) {
-      if (bootGuardEl) { bootGuardEl.hidden = true; bootGuardEl.innerHTML = ''; }
-      return;
-    }
-    renderBootGuard(problems);
-  }
-
-  function loadScriptOnce(src) {
-    return new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = src + (src.indexOf('?') >= 0 ? '&' : '?') + 'retry=' + Date.now();
-      s.onload = () => resolve();
-      s.onerror = () => reject(new Error('加载失败：' + src));
-      document.head.appendChild(s);
-    });
-  }
-
-  async function retryMissingResources() {
-    if (recovering) return;
-    recovering = true;
-    const btn = bootGuardEl && bootGuardEl.querySelector('[data-bg-retry]');
-    if (btn) { btn.disabled = true; btn.textContent = '正在重试…'; }
-    const before = resourceProblems().filter((p) => !p.fatal);
-    for (const item of before) {
-      try { await loadScriptOnce(item.src); } catch (e) { /* 继续尝试下一个 */ }
-    }
-    try { buildNav(); } catch (e) { /* noop */ }
-    const still = resourceProblems();
-    if (!still.length) {
-      if (bootGuardEl) { bootGuardEl.hidden = true; bootGuardEl.innerHTML = ''; }
-      try {
-        const hashId = (location.hash || '').replace(/^#\/?/, '');
-        const target = (pendingMode && NEG.tasks.get(pendingMode)) ? pendingMode
-          : ((hashId && NEG.tasks.get(hashId)) ? hashId : (router.currentId || 'home'));
-        pendingMode = null;
-        router.go(target, { force: true });
-        ui.toast('资源已恢复，功能正常', 'success');
-      } catch (e) { location.reload(); }
-    } else {
-      renderBootGuard(still);
-      ui.toast('仍有资源加载失败，请检查网络后刷新', 'error');
-    }
-    recovering = false;
-  }
-
-  // 捕获脚本资源加载错误（资源错误不冒泡，用捕获阶段）
-  window.addEventListener('error', (e) => {
-    if (e.target && e.target.tagName === 'SCRIPT') {
-      setTimeout(checkBootHealth, 300);
-    }
-  }, true);
-
   function helpContent() {
     return (
       '<p>「核纪元」是一座可以亲手拆解、建造、运行的核能科普实验室。所有内容基于 IAEA、ICRP、WHO、UNSCEAR 等机构的公开资料整理。</p>' +
@@ -1092,7 +975,7 @@ window.NEG = window.NEG || {};
       '<h3>数据与免责声明</h3>' +
       '<p class="dim" style="font-size:12px">本项目为科普教育作品，不构成医疗建议或专业辐射防护指导。剂量数值为公开资料中的典型量级，个体与实际场景可能存在差异；中国核电数据以文中标注年份为准。若发现内容错误，欢迎指正。</p>' +
       '<h3>技术</h3>' +
-      '<p class="dim" style="font-size:12px">零依赖 · 原生 HTML / CSS / JavaScript · Web Audio 实时合成音效 · Canvas 战绩卡 · localStorage 存档。无需联网，双击 index.html 即可运行。</p>'
+      '<p class="dim" style="font-size:12px">零依赖 · 原生 HTML / CSS / JavaScript · Web Audio 实时合成音效 · Canvas 战绩卡 · localStorage 存档。通过本地服务器或网站地址打开，模块会在使用时加载。</p>'
     );
   }
 
@@ -1136,10 +1019,7 @@ window.NEG = window.NEG || {};
 
     window.addEventListener('hashchange', () => {
       const id = (location.hash || '').replace(/^#\/?/, '');
-      if (id && NEG.tasks.get(id) && id !== router.currentId) {
-        suppressHash = true;
-        router.go(id);
-      }
+      router.go(id || 'home');
     });
   }
 
@@ -1151,8 +1031,7 @@ window.NEG = window.NEG || {};
       document.body.classList.toggle('reduce-motion', !!(data.settings && data.settings.reduceMotion));
     }
     if (!NEG.tasks || typeof NEG.tasks.list !== 'function') {
-      renderBootGuard([{ id: 'core', label: '模块管理器', src: 'assets/js/task-manager.js', fatal: true }]);
-      return;
+      throw new Error('Task manager is unavailable');
     }
     buildNav();
     bindHeader();
@@ -1160,11 +1039,7 @@ window.NEG = window.NEG || {};
     achievements.checkAll({ silent: false });
 
     const hashId = (location.hash || '').replace(/^#\/?/, '');
-    if (hashId && !NEG.tasks.get(hashId)) pendingMode = hashId;
-    const startId = (hashId && NEG.tasks.get(hashId)) ? hashId : (NEG.tasks.get(data.lastMode) ? data.lastMode : 'home');
-    router.go(startId, { force: true });
-
-    setTimeout(checkBootHealth, 1200);
+    const initial = router.go(hashId || (NEG.tasks.get(data.lastMode) ? data.lastMode : 'home'), { force: true });
 
     // 首次音频解锁
     const unlockAudio = () => {
@@ -1174,23 +1049,18 @@ window.NEG = window.NEG || {};
     };
     document.addEventListener('pointerdown', unlockAudio, true);
     document.addEventListener('keydown', unlockAudio, true);
+    return initial;
   }
 
-  /* 注意：脚本加了 defer 后，core.js 可能在 DOMContentLoaded 之前执行，
-     此时模式脚本尚未注册。必须等所有 defer 脚本执行完（DCL 或 load）再启动。 */
   let booted = false;
-  function bootOnce() {
-    if (booted) return;
+  start = function () {
+    if (booted) return router.pending || Promise.resolve(true);
     booted = true;
-    boot();
-  }
-  if (document.readyState === 'complete') {
-    bootOnce();
-  } else {
-    document.addEventListener('DOMContentLoaded', bootOnce, { once: true });
-    window.addEventListener('load', bootOnce, { once: true });
-  }
+    return boot();
+  };
 
   /* 对外工具挂载 */
   NEG.ui = ui;
 })(window.NEG);
+
+export { start };

@@ -712,3 +712,13 @@ kbd {
     bottom: calc(76px + env(safe-area-inset-bottom));
   }
 }
+.route-message {
+  min-height: min(54dvh, 420px);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-content: center;
+  gap: 12px;
+  text-align: center;
+}
+.route-message h2, .route-message p { flex-basis: 100%; }

@@ -18,8 +18,8 @@ window.NEG = window.NEG || {};
     mountedAt: 0
   };
 
-  function normalize(def) {
-    if (!def || !def.id || typeof def.render !== 'function') return null;
+  function normalize(def, metadataOnly) {
+    if (!def || !def.id || (!metadataOnly && typeof def.render !== 'function')) return null;
     return {
       id: def.id,
       title: def.title || def.id,
@@ -30,7 +30,7 @@ window.NEG = window.NEG || {};
       accent: def.accent || 'cyan',
       /* hidden: 注册仍在、代码照跑,只是不出现在导航与首页入口 */
       hidden: !!def.hidden,
-      render: def.render,
+      render: typeof def.render === 'function' ? def.render : null,
       progress: typeof def.progress === 'function' ? def.progress : null,
       isComplete: typeof def.isComplete === 'function' ? def.isComplete : null,
       onMount: typeof def.onMount === 'function' ? def.onMount : null
@@ -38,6 +38,15 @@ window.NEG = window.NEG || {};
   }
 
   const TM = {
+    // Navigation and saved-progress summaries do not require loading a renderer.
+    define(def) {
+      if (tasks.some(item => item.id === def.id)) return TM.get(def.id);
+      const item = normalize(def, true);
+      if (!item) return null;
+      tasks.push(item);
+      tasks.sort((a, b) => a.order - b.order || a.id.localeCompare(b.id));
+      return item;
+    },
     /* ---------- 注册 ---------- */
     register(def) {
       const item = normalize(def);
@@ -79,7 +88,7 @@ window.NEG = window.NEG || {};
     /* ---------- 生命周期 ---------- */
     mount(id, view, ctx) {
       const def = TM.get(id);
-      if (!def || !view) return null;
+      if (!def || !view || typeof def.render !== 'function') return null;
 
       TM.unmount();
       view.innerHTML = '';
@@ -96,6 +105,7 @@ window.NEG = window.NEG || {};
           '<p style="font-size:15px;color:var(--text);margin-bottom:6px">「' + def.title + '」加载失败</p>' +
           '<p style="font-size:12px;color:var(--text-3)">请刷新页面重试；如果问题持续出现，请查看控制台错误。</p>' +
           '</div>';
+        return null;
       }
 
       state.current = { def, cleanup: typeof cleanup === 'function' ? cleanup : null };

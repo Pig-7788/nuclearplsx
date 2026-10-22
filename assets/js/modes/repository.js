@@ -1,3 +1,8 @@
+import '../fullpage.js';
+import '../data/repository.js';
+
+import * as THREE from '../../vendor/three.module.js';
+
 /* ============================================================
    核纪元 · 深地质处置
    ------------------------------------------------------------
@@ -458,7 +463,7 @@
       }
       on(document, 'keydown', onKey);
 
-      if (!window.THREE || typeof window.THREE.WebGLRenderer !== 'function') {
+      if (typeof THREE.WebGLRenderer !== 'function') {
         loadingEl.hidden = true;
         fallbackEl.hidden = false;
         return function cleanup() {
@@ -504,7 +509,7 @@
          3D 场景
          ========================================================== */
       function createView() {
-        const T = window.THREE;
+        const T = THREE;
         const rect = stageEl.getBoundingClientRect();
         if (!rect.width || !rect.height) throw new Error('舞台尺寸为 0');
         let stageWidth = rect.width, stageHeight = rect.height;

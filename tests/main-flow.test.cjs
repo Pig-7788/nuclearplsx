@@ -7,7 +7,7 @@ const path = require('node:path');
 const vm = require('node:vm');
 
 const registrySource = fs.readFileSync(path.join(__dirname, '../assets/js/main-plays.js'), 'utf8');
-const mainSource = fs.readFileSync(path.join(__dirname, '../assets/js/modes/main.js'), 'utf8');
+const mainSource = fs.readFileSync(path.join(__dirname, '../assets/js/modes/main.js'), 'utf8').replace(/^import .*;\r?\n/gm, '');
 
 function events(target = {}) {
   const listeners = new Map();
@@ -293,4 +293,87 @@ test('skipping the final lesson cannot award a certificate, including a late com
   assert.equal(env.state.modes.main.certificate, false);
   assert.equal(env.state.modes.main.games['lesson1::final_summary'], undefined);
   lesson.cleanup();
+});
+
+function deferredLoad() {
+  let resolve, reject;
+  const promise = new Promise((yes, no) => { resolve = yes; reject = no; });
+  return { promise, resolve, reject };
+}
+
+async function settleLoading() { for (let i = 0; i < 10; i++) await Promise.resolve(); }
+
+test('skipping during a lazy lesson load cancels its future mount and ignores its completion', async () => {
+  const env = runtime();
+  const gate = deferredLoad();
+  let loads = 0, mounts = 0;
+  env.NEG.mainPlays.defineLoader('test_game', () => { loads++; return gate.promise; }, { label: '阅读关卡' });
+  const cleanup = env.render();
+  env.click('[data-resume]');
+  env.click('[data-action="next"]');
+  assert.match(env.root.querySelector('#mainPlayHost').textContent, /正在准备阅读关卡/);
+  env.window.emit('resize'); env.runTimers();
+  assert.ok(env.root.querySelector('#mainPlayHost'));
+  env.click('[data-action="skip"]');
+  env.NEG.mainPlays.register('test_game', { mount(_, __, ___, done) { mounts++; done({ ok: true }); } });
+  gate.resolve();
+  await settleLoading();
+  assert.equal(loads, 1);
+  assert.equal(mounts, 0);
+  assert.ok(env.root.querySelector('.main-done'));
+  assert.equal(env.state.modes.main.games['lesson1::test_game'], undefined);
+  cleanup();
+});
+
+test('returning to the chapter menu during loading prevents a stale game but permits reentry', async () => {
+  const env = runtime();
+  const gate = deferredLoad();
+  let mounts = 0, cleaned = 0;
+  env.NEG.mainPlays.defineLoader('test_game', () => gate.promise);
+  const cleanup = env.render();
+  env.click('[data-resume]'); env.click('[data-action="next"]');
+  env.click('[data-action="menu"]');
+  env.NEG.mainPlays.register('test_game', { mount(host) {
+    mounts++;
+    host.innerHTML = '<p id="lazyGame">Ready</p>';
+    return () => { cleaned++; };
+  } });
+  gate.resolve();
+  await settleLoading();
+  assert.equal(mounts, 0);
+  assert.ok(env.root.querySelector('.main-grid'));
+  env.click('[data-chapter="lesson1"]'); env.click('[data-action="next"]');
+  assert.equal(mounts, 1);
+  assert.ok(env.root.querySelector('#lazyGame'));
+  cleanup();
+  assert.equal(cleaned, 1);
+});
+
+test('a failed lazy import can retry in the chapter without saving a game result early', async () => {
+  const env = runtime();
+  const gate = deferredLoad();
+  let loads = 0, complete;
+  env.NEG.mainPlays.defineLoader('test_game', () => {
+    loads++;
+    if (loads === 1) return gate.promise;
+    env.NEG.mainPlays.register('test_game', { mount(host, _, __, done) {
+      host.innerHTML = '<p id="retriedGame">Ready</p>';
+      complete = done;
+    } });
+  });
+  const cleanup = env.render();
+  env.click('[data-resume]'); env.click('[data-action="next"]');
+  gate.reject(new Error('network unavailable'));
+  await settleLoading();
+  assert.ok(env.root.querySelector('[data-game-retry]'));
+  assert.equal(env.state.modes.main.games['lesson1::test_game'], undefined);
+  env.click('[data-game-retry]');
+  await settleLoading();
+  assert.equal(loads, 2);
+  assert.ok(env.root.querySelector('#retriedGame'));
+  assert.equal(env.state.modes.main.games['lesson1::test_game'], undefined);
+  complete({ ok: true });
+  assert.equal(env.state.modes.main.games['lesson1::test_game'].ok, true);
+  assert.ok(env.root.querySelector('#mainText'));
+  cleanup();
 });

@@ -10,7 +10,7 @@
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="核纪元 · 交互式核能实验室">
 <meta property="og:title" content="核纪元 · 交互式核能实验室">
-<meta property="og:description" content="识破 32 条辐射谣言，拼装一座压水堆，亲手把它开到满功率。零依赖、可离线、打开即玩的核能科普实验室。">
+<meta property="og:description" content="识破 32 条辐射谣言，拼装一座压水堆，亲手把它开到满功率。按需加载的交互式核能科普实验室。">
 <meta property="og:url" content="https://pig-7788.github.io/nuclearplsx/">
 <meta property="og:image" content="https://pig-7788.github.io/nuclearplsx/assets/img/og-cover.png">
 <meta property="og:image:width" content="1200">
@@ -25,27 +25,9 @@
 <meta name="theme-color" content="#050a14">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='5' fill='%23050a14'/%3E%3Cg fill='%2338e1ff'%3E%3Ccircle cx='12' cy='12' r='1.7'/%3E%3Cpath d='M12 3.5A8.5 8.5 0 0 1 19.36 7.75l-5.55 3.2a2.7 2.7 0 0 0-2.49-1.42z'/%3E%3Cpath d='M19.36 16.25A8.5 8.5 0 0 1 4.64 16.25l5.55-3.2a2.7 2.7 0 0 0 4.3.72z'/%3E%3Cpath d='M4.64 7.75A8.5 8.5 0 0 1 12 3.5v6.4a2.7 2.7 0 0 0-1.81 1.53z'/%3E%3C/g%3E%3C/svg%3E">
-<script>
-  window.__jsErrors = [];
-  window.addEventListener('error', function (e) {
-    window.__jsErrors.push((e.message || '') + ' @ ' + (e.filename || '').split('/').pop() + ':' + (e.lineno || 0));
-    document.documentElement.setAttribute('data-js-errors', window.__jsErrors.join(' || '));
-  });
-</script>
 <link rel="stylesheet" href="assets/css/theme.css">
 <link rel="stylesheet" href="assets/css/layout.css">
 <link rel="stylesheet" href="assets/css/components.css">
-<link rel="stylesheet" href="assets/css/modes/home.css">
-<link rel="stylesheet" href="assets/css/modes/rumor.css">
-<link rel="stylesheet" href="assets/css/modes/city.css">
-<link rel="stylesheet" href="assets/css/modes/console.css">
-<link rel="stylesheet" href="assets/css/modes/dose.css">
-<link rel="stylesheet" href="assets/css/modes/china.css">
-<link rel="stylesheet" href="assets/css/modes/repository.css">
-<link rel="stylesheet" href="assets/css/modes/main.css">
-<link rel="stylesheet" href="assets/css/history-exhibit.css">
-<link rel="stylesheet" href="assets/css/waste-barriers.css">
-<link rel="stylesheet" href="assets/css/modes/fullpage.css">
 </head>
 <body>
 <a class="skip-link" href="#view">跳到主要内容</a>
@@ -93,44 +75,6 @@
 <div id="overlayRoot"></div>
 <div id="toastRoot" class="toast-root" aria-live="polite" aria-atomic="false"></div>
 
-<script src="assets/js/data/stories/STORY_START.js" defer></script>
-<script src="assets/js/data/stories/STORY_CONTRYSAFE.js" defer></script>
-<script src="assets/js/data/stories/STORY_NEWTHEC.js" defer></script>
-<script src="assets/js/data/stories/STORY_PEOPLE.js" defer></script>
-<script src="assets/js/data/stories/STORY_CLEANPOWER.js" defer></script>
-<script src="assets/js/data/stories/STORY_ENVIRON.js" defer></script>
-<script src="assets/js/data/stories/STORY_RADIATION.js" defer></script>
-<script src="assets/js/data/stories/STORY_END.js" defer></script>
-<script src="assets/js/data/rumor-packs.js" defer></script>
-<script src="assets/js/data/rumors.js" defer></script>
-<script src="assets/js/data/doses.js" defer></script>
-<script src="assets/js/data/china.js" defer></script>
-<script src="assets/js/data/reactor.js" defer></script>
-<script src="assets/js/data/repository.js" defer></script>
-<script src="assets/js/svg.js" defer></script>
-<script src="assets/js/console-model.js" defer></script>
-<script src="assets/js/task-manager.js" defer></script>
-<script src="assets/js/fullpage.js" defer></script>
-<script src="assets/js/main-plays.js" defer></script>
-<script src="assets/vendor/three.min.js" defer></script>
-<script src="assets/js/history-exhibit-scene.js" defer></script>
-<script src="assets/js/games/history.js" defer></script>
-<script src="assets/js/waste-barrier-scene.js" defer></script>
-<script src="assets/js/waste-barriers.js" defer></script>
-<script src="assets/js/games/barriers.js" defer></script>
-<script src="assets/js/plant-build.js" defer></script>
-<script src="assets/js/games/match.js" defer></script>
-<script src="assets/js/games/debunk.js" defer></script>
-<script src="assets/js/games/build.js" defer></script>
-<script src="assets/js/games/final.js" defer></script>
-<script src="assets/js/core.js" defer></script>
-<script src="assets/js/modes/home.js" defer></script>
-<script src="assets/js/modes/main.js" defer></script>
-<script src="assets/js/modes/rumor.js" defer></script>
-<script src="assets/js/modes/city.js" defer></script>
-<script src="assets/js/modes/console.js" defer></script>
-<script src="assets/js/modes/dose.js" defer></script>
-<script src="assets/js/modes/china.js" defer></script>
-<script src="assets/js/modes/repository.js" defer></script>
+<script type="module" src="assets/js/app.js"></script>
 </body>
 </html>
