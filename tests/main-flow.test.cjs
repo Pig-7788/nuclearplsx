@@ -89,7 +89,7 @@ function runtime() {
   const timers = new Map();
   let timer = 0;
   const context = vm.createContext({
-    window, document, console: { warn() {}, error() {} },
+    window, document, storySummary: {}, console: { warn() {}, error() {} },
     setTimeout(fn) { timers.set(++timer, fn); return timer; },
     clearTimeout(id) { timers.delete(id); },
     getComputedStyle() { return { fontSize: '16px' }; }
@@ -193,6 +193,17 @@ test('reading size is saved before entry and retained when opening a chapter', (
   assert.equal(env.state.settings.readingSize, 'large');
   env.click('[data-resume]');
   assert.equal(env.root.querySelector('[data-reading-size]').value, 'large');
+  cleanup();
+});
+
+test('the chapter directory offers a start action for a fresh learner and a focusable reading region', () => {
+  const env = runtime();
+  const cleanup = env.render();
+  assert.match(env.root.querySelector('[data-resume]').textContent, /开始学习/);
+  assert.match(env.root.textContent, /从第一章开始/);
+  const directory = env.root.querySelector('.main-directory-scroll');
+  assert.equal(directory.attrs.tabindex, '0');
+  assert.equal(directory.attrs['aria-label'], '章节目录');
   cleanup();
 });
 
