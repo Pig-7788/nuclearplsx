@@ -35,6 +35,8 @@ window.NEG = window.NEG || {};
       const st = (ctx.store && ctx.store.get) ? ctx.store.get() : {};
       const m = (st.modes && st.modes.main) || {};
       const games = m.games || {};
+      const pretestKey = Object.keys(games).find((key) => /::cognition_pretest$/.test(key));
+      const pretest = pretestKey ? games[pretestKey] : null;
 
       let attitudeAfter = m.attitude_after || '';
       let idx = 0;
@@ -65,6 +67,11 @@ window.NEG = window.NEG || {};
           return t.done + ' / ' + t.total;
         }
         if (key === 'games_completed') return String(gameCount());
+        if (key === 'pretest_correct') {
+          return pretest && Number.isFinite(Number(pretest.total))
+            ? Number(pretest.correct || 0) + ' / ' + Number(pretest.total)
+            : '未记录';
+        }
         return def != null ? String(def) : '—';
       }
 
@@ -271,6 +278,15 @@ window.NEG = window.NEG || {};
                   '<span class="ls-chip">知识卡 <b>' + cards + '</b></span>' +
                   '<span class="ls-chip">章节 <b>' + tally.done + '/' + tally.total + '</b></span>' +
                 '</div>' +
+                '<div class="ls-card" style="padding:8px 10px">' +
+                  '<div class="ls-ask">前测 → 终章</div>' +
+                  '<p class="ls-note" style="margin-top:3px">前测答对 <b>' +
+                    (pretest ? Number(pretest.correct || 0) + ' / ' + Number(pretest.total || 3) : '未记录') +
+                    '</b>（前测不公布对错，只作起点对照）· 终章一次答对 <b>' + mastered.length + ' / ' + questions.length +
+                    '</b> · 经纠正掌握 <b>' + corrected.length + '</b></p>' +
+                  '<p class="ls-note">态度：<b>' + esc(m.attitude_baseline || '未记录') + '</b> → <b>' +
+                    esc(attitudeAfter || '未记录') + '</b></p>' +
+                '</div>' +
                 '<div class="pr-lists">' +
                   '<div class="pr-list is-ok"><h5>已掌握</h5><ul>' +
                     (mastered.length ? mastered.map((q) => '<li>' + esc(q.question) + '</li>').join('') : '<li>暂无</li>') +
@@ -317,7 +333,8 @@ window.NEG = window.NEG || {};
               corrected: corrected.length,
               review: Array.from(new Set(review)),
               attitudeBefore: m.attitude_baseline || '',
-              attitudeAfter: m.attitude_after || ''
+              attitudeAfter: m.attitude_after || '',
+              pretest: pretest ? { correct: Number(pretest.correct || 0), total: Number(pretest.total || 3) } : null
             });
           });
         }

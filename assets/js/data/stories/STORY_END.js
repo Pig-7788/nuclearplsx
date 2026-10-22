@@ -30,6 +30,7 @@ const chapterFinalSummaryData = {
         title: "你的核科学认知档案",
         fields: [
             { key: "attitude_baseline", label: "初始态度", default: "未记录" },
+            { key: "pretest_correct", label: "前测答对" },
             { key: "knowledge_cards_collected", label: "收集知识卡", unit: "张" },
             { key: "modules_completed", label: "完成主线章节" },
             { key: "games_completed", label: "完成互动关卡", unit: "个" }

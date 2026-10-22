@@ -6,11 +6,17 @@ games.defineLoader('nuclear_history_exhibit', () => Promise.all([
   import('./games/history.js'), loadStyle('history-exhibit.css')
 ]), { label: '核科学历史展台' });
 games.defineLoader('multi_barrier_sort', () => Promise.all([
-  import('./games/barriers.js'), loadStyle('waste-barriers.css')
+  import('./games/barriers.js'), loadStyle('waste-barriers.css'), loadStyle('lessons.css')
 ]), { label: '核废料的四重屏障' });
 games.defineLoader('reactor_build_game', () => Promise.all([
   import('./games/build.js'), loadStyle('modes/city.css')
 ]), { label: '核电站建造' });
+games.defineLoader('cognition_pretest', () => Promise.all([
+  import('./games/cognition-pretest.js'), loadStyle('lessons.css')
+]), { label: '开卷前测' });
+games.defineLoader('power_trace', () => Promise.all([
+  import('./games/power-trace.js'), loadStyle('lessons.css')
+]), { label: '追踪一度电' });
 games.defineLoader('life_service_station', () => Promise.all([
   import('./games/life-service.js'), loadStyle('lessons.css')
 ]), { label: '核技术生活服务站' });

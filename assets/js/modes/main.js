@@ -95,6 +95,7 @@ window.NEG = window.NEG || {};
   function blocksOf(ch) {
     const out = [];
     if (!ch) return out;
+    if (ch.learning_route) out.push({ type: 'route' });
     if (Array.isArray(ch.acts) && ch.acts.length) {
       ch.acts.forEach((act) => {
         const scenes = Array.isArray(act.scenes) ? act.scenes : [];
@@ -109,7 +110,11 @@ window.NEG = window.NEG || {};
     /* 章节自带的关卡(gameplay)排在正文之后,与场景内 action 走同一条发起路径 */
     if (ch.gameplay && ch.gameplay.type) {
       out.push({ type: 'gameplay', data: ch.gameplay });
-    } else if (ch.module_type === 'final_summary') {
+    }
+    if (ch.extra_gameplay && ch.extra_gameplay.type) {
+      out.push({ type: 'gameplay', data: ch.extra_gameplay });
+    }
+    if (!ch.gameplay && ch.module_type === 'final_summary') {
       /* 终章:统计 + 结业答辩 + 证书,由 final_summary 玩法统一驱动 */
       out.push({ type: 'gameplay', data: { type: 'final_summary', title: ch.title || '' } });
     }
@@ -125,7 +130,9 @@ window.NEG = window.NEG || {};
   }
 
   function blockCost(b) {
-    return b.type === 'p' ? String(b.text || '').length : EXTRA_COST;
+    if (b.type === 'p') return String(b.text || '').length;
+    if (b.type === 'route') return 360;
+    return EXTRA_COST;
   }
 
   function chunkByChars(blocks) {
@@ -354,6 +361,29 @@ window.NEG = window.NEG || {};
           return '<div class="main-extra' + (isPageLast ? ' is-bottom' : '') + '">' +
             (it.prompt ? '<div class="me-row"><span class="panel-note">' + U.esc(it.prompt) + '</span></div>' : '') +
             '<div class="me-opts">' + opts + '</div>' + note +
+          '</div>';
+        }
+
+        if (b.type === 'route') {
+          const ids = chapterIds();
+          const doneSet = new Set(Array.isArray(m.completed) ? m.completed : []);
+          return '<div class="main-route">' +
+            '<div class="mr-head">' +
+              '<span class="eyebrow">LEARNING ROUTE · 学习路线</span>' +
+              '<h3>八章认知档案</h3>' +
+              '<p class="panel-note">先记住自己的起点，再沿着八个章节一步步建立判断力。终章会回看你的变化。</p>' +
+            '</div>' +
+            '<div class="mr-grid">' + ids.map((cid, i) => {
+              const c = chapterOf(cid) || {};
+              const done = doneSet.has(cid);
+              const t = String(c.title || cid).replace(/^第[一二三四五六七八九十]+章：/, '').replace(/^总览：/, '');
+              return '<div class="mr-item' + (done ? ' is-done' : '') + '">' +
+                '<span class="mr-no">' + String(i + 1).padStart(2, '0') + '</span>' +
+                '<span class="mr-text"><b>' + U.esc(t) + '</b>' +
+                  '<small>' + U.esc(String(c.summary || '').slice(0, 52)) + '</small></span>' +
+                (done ? '<span class="mr-done">已完成</span>' : '') +
+              '</div>';
+            }).join('') + '</div>' +
           '</div>';
         }
 
@@ -667,15 +697,15 @@ window.NEG = window.NEG || {};
           paintCurrent(-1);
         }
 
-        function startPlay(type) {
+        function startPlay(type, payloadOverride) {
           if (!NEG.mainPlays || !NEG.mainPlays.has(type)) {
             ui.toast('该关卡尚未接入', 'info');
             return;
           }
 
-          /* payload:场景内 action.payload,或章节自带 gameplay 对象 */
-          let payload = {};
-          blocks.forEach((b) => {
+          /* payload:开场关卡显式传入,场景内 action.payload,或章节自带 gameplay 对象 */
+          let payload = payloadOverride || {};
+          if (!payloadOverride) blocks.forEach((b) => {
             if (b.type === 'action' && b.data && b.data.target_module === type) {
               payload = b.data.payload || {};
             } else if (b.type === 'gameplay' && b.data && b.data.type === type) {
@@ -867,6 +897,13 @@ window.NEG = window.NEG || {};
         document.addEventListener('keydown', keyHandler);
 
         paintCurrent();
+
+        /* 开场关卡（如前测）：未完成时先于正文启动；完成后自动回到阅读 */
+        const opening = ch.opening_gameplay;
+        if (opening && opening.type && NEG.mainPlays && NEG.mainPlays.has(opening.type) &&
+            !m.games[gameKey(id, opening.type)]) {
+          startPlay(opening.type, opening);
+        }
       }
 
       renderMenu();

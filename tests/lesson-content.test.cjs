@@ -93,9 +93,50 @@ test('final chapter requires conclusion plus evidence and only certificates afte
   assert.match(source, /corrections|corrected/);
 });
 
+
+test('first chapter opens with a three-question pretest and a learning route', () => {
+  const story = loadStories();
+  const ch = story.ch01_overview;
+  assert.equal(ch.learning_route, true);
+  const pre = ch.opening_gameplay;
+  assert.equal(pre.type, 'cognition_pretest');
+  assert.equal(pre.questions.length, 3);
+  assert.ok(pre.attitude_options.length >= 3);
+  for (const q of pre.questions) assert.equal(countOk(q.options), 1, q.id);
+  assert.equal(ch.acts.length, 3);
+});
+
+test('fifth chapter adds a power trace after the reactor build', () => {
+  const story = loadStories();
+  const ch = story.ch05_clean_energy;
+  const trace = ch.extra_gameplay;
+  assert.equal(trace.type, 'power_trace');
+  assert.equal(trace.path.length, 6);
+  assert.deepEqual(Array.from(trace.path.map((p) => p.id)),
+    ['core', 'primary', 'sg', 'steam', 'generator', 'grid']);
+  assert.equal(trace.roles.length, 2);
+  for (const role of trace.roles) assert.equal(countOk(role.options), 1);
+});
+
+test('sixth chapter asks a function question for every barrier and a final mapping', () => {
+  const story = loadStories();
+  const ch = story.ch06_waste_process;
+  const game = ch.gameplay;
+  assert.equal(game.type, 'multi_barrier_sort');
+  const ids = ['glass', 'container', 'buffer', 'rock'];
+  for (const id of ids) {
+    assert.ok(game.layer_questions[id], id);
+    assert.equal(countOk(game.layer_questions[id].options), 1, id);
+  }
+  assert.ok(game.mapping_prompt);
+  const source = fs.readFileSync(path.join(__dirname, '../assets/js/games/barriers.js'), 'utf8');
+  assert.match(source, /data-map-fb/);
+  assert.match(source, /mappingDone/);
+});
+
 test('new lesson loaders are registered lazily with shared styles', () => {
   const source = fs.readFileSync(path.join(__dirname, '../assets/js/lesson-loaders.js'), 'utf8');
-  ['life_service_station', 'protection_lab', 'research_desk', 'final_summary'].forEach((type) => {
+  ['life_service_station', 'protection_lab', 'research_desk', 'final_summary', 'cognition_pretest', 'power_trace'].forEach((type) => {
     assert.match(source, new RegExp("defineLoader\\('" + type + "'"));
   });
   assert.match(source, /loadStyle\('lessons\.css'\)/);

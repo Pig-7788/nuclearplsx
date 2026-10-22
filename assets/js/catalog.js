@@ -8,12 +8,12 @@ export const CONTENT_COUNTS = Object.freeze({
 });
 
 const chapters = [
-  { id: 'ch01_overview', title: '总览：核科学技术的历史沿革', cardCount: 0, summary: '从历史沿革认识核科学技术的发展与应用。' },
+  { id: 'ch01_overview', title: '第一章：总览', cardCount: 0, summary: '三道前测记录起点，八章路线指引学习，再从历史沿革进入核科学技术。' },
   { id: 'ch02_national_security', title: '第二章：国家安全', cardCount: 2, summary: '从历史中理解核科学，在安全与责任的前提下认识它的和平用途。' },
   { id: 'ch03_innovation_frontier', title: '第三章：创新前沿', cardCount: 3, summary: '在科研委托台为任务选择合适装置，理解它能解决什么、又有什么局限。' },
   { id: 'ch04_people_safety', title: '第四章：百姓平安', cardCount: 3, summary: '在生活服务站判断用途、查看依据、解释原因，区分示踪、辐照与无损检测。' },
-  { id: 'ch05_clean_energy', title: '第五章：清洁能源', cardCount: 4, summary: '了解核能发电与压水堆，拼装核电站。' },
-  { id: 'ch06_waste_process', title: '第六章：绿水青山', cardCount: 3, summary: '认识核废物分类、玻璃固化与多重屏障。' },
+  { id: 'ch05_clean_energy', title: '第五章：清洁能源', cardCount: 4, summary: '拼装压水堆，再追踪“核裂变热 → 蒸汽 → 机械能 → 电能”的一度电路径。' },
+  { id: 'ch06_waste_process', title: '第六章：绿水青山', cardCount: 3, summary: '按由内到外组装四重屏障，逐层判断作用，再把作用卡对应到模型。' },
   { id: 'ch07_radiation_protection', title: '第七章：辐射防护', cardCount: 3, summary: '通过外照射调控与内照射判断，理解时间、距离、屏蔽与“阻止进入”的不同。' },
   { id: 'ch08_epilogue', title: '终章：核科学认知档案', cardCount: 1, summary: '完成“结论 + 依据”的公众回应，总结已掌握、已纠正与建议复习，再完成认证。' }
 ].map((chapter) => Object.freeze(chapter));
