@@ -1,6 +1,7 @@
 import '../fullpage.js';
 import '../data/stories/index.js';
 import '../lesson-loaders.js';
+import { storySummary } from '../catalog.js';
 
 /* ============================================================
    核纪元 · 主线模式(认知档案)
@@ -31,12 +32,6 @@ window.NEG = window.NEG || {};
     narrative_pipeline: 'trend',
     final_summary: 'trophy'
   };
-
-  /* 章节卡片配色 */
-  const TILE_COLORS = [
-    '#38e1ff', '#ff8a8a', '#a78bfa', '#3ef0a2',
-    '#ffc857', '#38e1ff', '#ff6b6b', '#a78bfa'
-  ];
 
 
   /* 拿不到布局信息时的兜底分页预算 */
@@ -446,27 +441,18 @@ window.NEG = window.NEG || {};
         let contBlock;
         if (!contId) {
           contBlock =
-            '<div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">' +
-              '<div>' +
-                '<h3>' + NEG.icon('trophy') + ' 主线已全部完成</h3>' +
-                '<p class="panel-note" style="margin-top:4px">八章认知档案已经整理完毕,可以回看任意章节。</p>' +
-              '</div>' +
-              '<span class="badge badge-green">' + done + ' / ' + total + ' 章</span>' +
-            '</div>';
+            '<div class="continue-copy"><span>八章已完成</span>' +
+              '<h3>你的认知档案已整理完成</h3></div>' +
+            '<p class="continue-finish">现在可以回看任意章节。</p>';
         } else {
-          const idx = ids.indexOf(contId) + 1;
           const ch = chapterOf(contId);
-          const started = m.current === contId || done > 0;
+          const started = done > 0 || (m.current === contId && m.panelIndex > 0) ||
+            Object.keys(m.games).some(key => key.startsWith(contId + '::'));
           contBlock =
-            '<div class="row" style="justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">' +
-              '<div>' +
-                '<h3>' + NEG.icon('play') + ' ' + (started ? '继续第 ' + idx + ' 章' : '开始第一章') + '</h3>' +
-                '<p class="panel-note" style="margin-top:4px">' + U.esc(ch.title || '') + '</p>' +
-              '</div>' +
+              '<div class="continue-copy"><span>' + (started ? '接着上次的进度' : '从第一章开始') + '</span>' +
+                '<h3>' + U.esc(ch.title || '') + '</h3></div>' +
               '<button class="btn btn-primary" type="button" data-resume="' + U.esc(contId) + '">' +
-                NEG.icon('play', 16) + (started ? '继续学习' : '开始学习') +
-              '</button>' +
-            '</div>';
+                (started ? '继续学习' : '开始学习') + NEG.icon('arrowRight', 18) + '</button>';
         }
 
         const cardsHTML = ids.map((id, i) => {
@@ -475,45 +461,45 @@ window.NEG = window.NEG || {};
           const open = isUnlocked(ch, m.completed);
           const isDoing = !isDone && open && m.current === id && m.panelIndex > 0;
           const status = isDone ? 'done' : isDoing ? 'doing' : open ? 'open' : 'locked';
-          const color = TILE_COLORS[i % TILE_COLORS.length];
-          const icon = CHAPTER_ICON[ch.module_type] || 'book';
           const cardCount = Array.isArray(ch.knowledge_cards) ? ch.knowledge_cards.length : 0;
-          const pct = isDone ? 100 : (open ? (isDoing ? 35 : 0) : 0);
+          const summary = storySummary[id] ? storySummary[id].summary : (ch.summary || '');
+          const current = id === contId;
+          const statusLabel = !open ? '完成前章后解锁' : current ? '当前章节' : STATUS_TEXT[status];
 
-          return '<button class="main-card"' +
+          return '<button class="main-card' + (current ? ' is-current' : '') + '" data-status="' + status + '"' +
             ' type="button" data-chapter="' + U.esc(id) + '"' +
             (open ? '' : ' disabled') +
-            ' style="--tile-color:' + color + ';--tile-border:' + color + '3d">' +
-            '<span class="mc-head">' +
-              '<span class="mc-no">CH.' + (i + 1) + '</span>' +
-              '<span class="mc-ico">' + NEG.icon(open ? 'arrowRight' : 'close', 15) + '</span>' +
+            (current ? ' aria-current="step"' : '') + '>' +
+            '<span class="mc-no" aria-hidden="true">' + String(i + 1).padStart(2, '0') + '</span>' +
+            '<span class="mc-content"><span class="mc-head">' +
+              '<span class="mc-title">' + U.esc(ch.title || id) + '</span>' +
+              (open ? '<span class="mc-ico" aria-hidden="true">' + NEG.icon('arrowRight', 20) + '</span>' : '') +
             '</span>' +
-            '<span class="mc-title">' + U.esc(ch.title || id) + '</span>' +
-            '<span class="mc-desc">' + U.esc(ch.summary || '') + '</span>' +
+            '<span class="mc-desc">' + U.esc(summary) + '</span>' +
             '<span class="mc-meta">' +
-              '<span>' + STATUS_TEXT[status] + '</span><span>·</span>' +
-              '<span>' + cardCount + ' 卡</span>' +
-            '</span>' +
-            '<span class="mc-bar"><i style="width:' + pct + '%"></i></span>' +
-          '</button>';
+              '<span class="mc-state">' + (isDone ? NEG.icon('check', 16) : '') + statusLabel + '</span>' +
+              '<span>知识卡 ' + cardCount + ' 张</span>' +
+            '</span></span></button>';
         }).join('');
 
         root.innerHTML =
-          '<div class="main-page">' +
+          '<div class="main-page main-menu">' +
             '<header class="main-top">' +
               '<div class="main-id">' +
-                '<span class="eyebrow">MAIN STORY · 主线学习</span>' +
-                '<h2>' + NEG.icon('book') + ' 认知档案</h2>' +
+                '<h2>认知档案</h2>' +
+                '<p class="main-menu-caption">从发现到应用，认识核科学。</p>' +
               '</div>' +
               '<div class="main-tools">' +
                 fontControl() +
-                '<span class="badge badge-cyan">已完成 ' + done + ' / ' + total + '</span>' +
-                '<span class="badge badge-line">知识卡 ' + cards + ' / ' + allCards + '</span>' +
+                '<div class="main-overview"><span>已完成 <b>' + done + ' / ' + total + '</b> 章</span>' +
+                '<span>知识卡 <b>' + cards + ' / ' + allCards + '</b> 张</span></div>' +
               '</div>' +
             '</header>' +
-            '<p class="main-font-hint">开始前可在上方调整字号，学习中也能随时更改；长内容可在阅读区域内滚动。</p>' +
-            '<div class="panel panel-pad main-continue">' + contBlock + '</div>' +
-            '<div class="main-grid">' + cardsHTML + '</div>' +
+            '<div class="main-directory-scroll" role="region" aria-label="章节目录" tabindex="0">' +
+              '<section class="main-continue" aria-label="继续学习">' + contBlock + '</section>' +
+              '<div class="main-directory-heading"><h3>章节目录</h3><span>按顺序学习，逐章解锁</span></div>' +
+              '<div class="main-grid">' + cardsHTML + '</div>' +
+            '</div>' +
           '</div>';
         bindFontControl();
 
