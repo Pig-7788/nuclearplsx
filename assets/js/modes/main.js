@@ -901,10 +901,16 @@ window.NEG = window.NEG || {};
           if (inGame) return;            /* 关卡进行中不响应翻页键 */
           if (U.isTyping(e)) return;
           if (document.querySelector('.overlay')) return;
-          // Preserve native keyboard scrolling when a large-font paragraph spans the reading area.
+          // Scroll the reading region before turning the page when enlarged text overflows.
           if (textEl && textEl.scrollHeight > textEl.clientHeight + 1) {
-            if (['ArrowDown', 'PageDown', ' '].includes(e.key) && textEl.scrollTop + textEl.clientHeight < textEl.scrollHeight - 1) return;
-            if (['ArrowUp', 'PageUp'].includes(e.key) && textEl.scrollTop > 0) return;
+            const down = ['ArrowDown', 'PageDown', ' '].includes(e.key) && textEl.scrollTop + textEl.clientHeight < textEl.scrollHeight - 1;
+            const up = ['ArrowUp', 'PageUp'].includes(e.key) && textEl.scrollTop > 0;
+            if (down || up) {
+              e.preventDefault();
+              const distance = e.key.startsWith('Arrow') ? 48 : textEl.clientHeight * 0.85;
+              textEl.scrollTop += down ? distance : -distance;
+              return;
+            }
           }
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'PageDown') {
             e.preventDefault();
