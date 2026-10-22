@@ -8,7 +8,9 @@ const vm = require('node:vm');
 
 const registered = new Map();
 const context = { window: { NEG: { mainPlays: { register(type, definition) { registered.set(type, definition); } } } } };
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../assets/js/games/history.js'), 'utf8'), context);
+// Dependencies are injected by this unit fixture; native imports are verified in browser checks.
+const historySource = fs.readFileSync(path.join(__dirname, '../assets/js/games/history.js'), 'utf8').replace(/^import .+;\n/gm, '');
+vm.runInNewContext(historySource, context);
 const exhibit = context.window.NEG.HistoryExhibit;
 const ids = ['history', 'peace', 'responsibility'];
 const plain = value => JSON.parse(JSON.stringify(value));

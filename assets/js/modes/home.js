@@ -1,3 +1,7 @@
+import { storySummary } from '../catalog.js';
+import '../fullpage.js';
+import '../data/rumors.js';
+
 /* ============================================================
    核纪元 · 首页（驾驶舱）
    上下两屏整页翻页：第一屏主视觉，第二屏五大实验室
@@ -35,7 +39,7 @@
       const labs = tasks.list().filter((t) => t.id !== 'home' && t.id !== 'main' && !t.hidden);
 
       /* 主线(认知档案)进度与总量 */
-      const storyData = (typeof NEG !== 'undefined' && NEG.story) ? NEG.story : null;
+      const storyData = storySummary;
       const storyIds = (storyData && Array.isArray(storyData.order)) ? storyData.order : [];
       const mainState = (state.modes && state.modes.main) || {};
       const mainDoneList = Array.isArray(mainState.completed) ? mainState.completed : [];
@@ -44,7 +48,7 @@
       let storyCardTotal = 0;
       storyIds.forEach((sid) => {
         const c = storyData ? storyData[sid] : null;
-        if (c && Array.isArray(c.knowledge_cards)) storyCardTotal += c.knowledge_cards.length;
+        if (c && Number.isFinite(c.cardCount)) storyCardTotal += c.cardCount;
       });
       const storyTotal = storyIds.length || 8;
       const mainPct = storyTotal ? Math.round((mainDone / storyTotal) * 100) : 0;

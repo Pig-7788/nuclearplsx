@@ -1,3 +1,5 @@
+import * as THREE from '../vendor/three.module.js';
+
 /* 核废料多重屏障：相对比例的几何剖面，按需渲染，无外部资源。 */
 window.NEG = window.NEG || {};
 (function (NEG) {
@@ -10,8 +12,7 @@ window.NEG = window.NEG || {};
       const opts = options || {};
       const noop = function () {};
       const fallback = { supported: false, setProgress: noop, setExploded: noop, resetView: noop, destroy: noop };
-      const THREE = window.THREE;
-      if (!canvas || typeof canvas.getContext !== 'function' || !THREE || !THREE.WebGLRenderer) return fallback;
+      if (!canvas || typeof canvas.getContext !== 'function' || !THREE.WebGLRenderer) return fallback;
 
       let renderer = null;
       let frame = null;

@@ -14,13 +14,18 @@
    - done(result):玩法通关后回调,result 会写进存档 modes.main.games[type]
    - 返回的函数会在切章 / 退出时调用,用于解绑监听
 
-   当前阶段:注册表就位,内置玩法在后续阶段逐个填充。
+   defineLoader(type, loader, { label }) 只声明入口，不执行加载。
+   load(type) 在首次进入时加载并复用同一个进行中的 Promise。
    ============================================================ */
 window.NEG = window.NEG || {};
 (function (NEG) {
   'use strict';
 
   const plays = Object.create(null);
+  const loaders = Object.create(null);
+  const owners = new WeakMap();
+  const escape = value => String(value == null ? '' : value).replace(/[&<>"']/g,
+    char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
 
   const registry = {
     /**
@@ -40,10 +45,36 @@ window.NEG = window.NEG || {};
       return plays[type];
     },
 
-    get(type) { return plays[type] || null; },
-    has(type) { return !!plays[type]; },
-    label(type) { return plays[type] ? plays[type].label : type; },
-    list() { return Object.keys(plays).map((k) => plays[k]); },
+    defineLoader(type, loader, options) {
+      if (!type || typeof loader !== 'function') return null;
+      const label = typeof options === 'string' ? options : options && options.label;
+      const metadata = { type, label: label || type, lazy: true };
+      loaders[type] = { loader, metadata, promise: null, ready: !!plays[type] };
+      return metadata;
+    },
+
+    get(type) { return plays[type] || (loaders[type] && loaders[type].metadata) || null; },
+    has(type) { return !!(plays[type] || loaders[type]); },
+    label(type) { const def = registry.get(type); return def ? def.label : type; },
+    list() { return Array.from(new Set(Object.keys(plays).concat(Object.keys(loaders)))).map((k) => registry.get(k)); },
+
+    load(type) {
+      const record = loaders[type];
+      if (!record) return plays[type] ? Promise.resolve(plays[type]) : Promise.reject(new Error('未知关卡：' + type));
+      if (record.promise) return record.promise;
+      if (record.ready && plays[type]) return Promise.resolve(plays[type]);
+      const pending = Promise.resolve().then(() => record.loader()).then(() => {
+        if (!plays[type]) throw new Error('关卡未注册：' + type);
+        record.ready = true;
+        return plays[type];
+      }).catch((error) => {
+        if (record.promise === pending) record.promise = null;
+        record.ready = false;
+        throw error;
+      });
+      record.promise = pending;
+      return pending;
+    },
 
     /**
      * 统一挂载入口。玩法不存在时返回 null,由调用方降级处理。
@@ -51,18 +82,33 @@ window.NEG = window.NEG || {};
      * @returns {Function|null} cleanup
      */
     mount(type, container, payload, ctx, done, opts) {
-      const def = plays[type];
-      if (!def) return null;
+      if (!registry.has(type) || !container || (typeof container !== 'object' && typeof container !== 'function')) return null;
+      const previous = owners.get(container);
+      if (previous) previous();
       let cleanup = null;
       let active = true;
-      let completed = false;
-      let mounting = true;
-      let pendingResult;
-      let hasPendingResult = false;
+      let attempt = 0;
+      let loading = false;
+      let retryCleanup = null;
+
+      function clearRetry() {
+        if (retryCleanup) retryCleanup();
+        retryCleanup = null;
+      }
+
+      function busy(value) {
+        if (typeof container.setAttribute === 'function') container.setAttribute('aria-busy', String(value));
+      }
 
       function dispose() {
         if (!active) return;
         active = false;
+        attempt++;
+        clearRetry();
+        if (owners.get(container) === dispose) {
+          owners.delete(container);
+          busy(false);
+        }
         const release = cleanup;
         cleanup = null;
         if (release) {
@@ -75,34 +121,79 @@ window.NEG = window.NEG || {};
         if (typeof done === 'function') done(result);
       }
 
-      function complete(result) {
-        if (!active || completed) return;
-        completed = true;
-        // 挂载函数可以同步完成；先取得 cleanup，再通知主线切换视图。
-        if (mounting) { pendingResult = result; hasPendingResult = true; }
-        else deliver(result);
+      function launch(def) {
+        const version = ++attempt;
+        let mounting = true;
+        let completed = false;
+        let pendingResult;
+        let hasPendingResult = false;
+        function complete(result) {
+          if (!active || version !== attempt || completed) return;
+          completed = true;
+          // 挂载函数可以同步完成；先取得 cleanup，再通知主线切换视图。
+          if (mounting) { pendingResult = result; hasPendingResult = true; }
+          else deliver(result);
+        }
+        try {
+          const release = def.mount(container, payload || {}, ctx, complete, opts || {});
+          cleanup = typeof release === 'function' ? release : null;
+          if (release === null && !hasPendingResult) { attempt++; return false; }
+        } catch (err) {
+          attempt++;
+          console.error('[mainPlays] 玩法挂载失败:' + type, err);
+          return false;
+        }
+        mounting = false;
+        if (hasPendingResult) deliver(pendingResult);
+        return true;
       }
 
-      try {
-        const release = def.mount(
-          container,
-          payload || {},
-          ctx,
-          complete,
-          opts || {}
-        );
-        cleanup = typeof release === 'function' ? release : null;
-        if (release === null && !hasPendingResult) {
-          active = false;
-          return null;
+      function showFailure() {
+        if (!active) return;
+        busy(false);
+        container.innerHTML = '<div class="empty" role="alert"><p>关卡暂时无法加载，请重试。</p>' +
+          '<button class="btn btn-primary" type="button" data-game-retry>重新加载关卡</button>' +
+          '<button class="btn btn-quiet" type="button" data-game-reload>刷新页面</button></div>';
+        const button = typeof container.querySelector === 'function' ? container.querySelector('[data-game-retry]') : null;
+        const reload = typeof container.querySelector === 'function' ? container.querySelector('[data-game-reload]') : null;
+        const reloadPage = () => {
+          if (NEG.store && typeof NEG.store.flush === 'function') NEG.store.flush();
+          window.location.reload();
+        };
+        if (reload) reload.addEventListener('click', reloadPage);
+        if (button) {
+          button.addEventListener('click', startLoad);
         }
-      } catch (err) {
-        active = false;
-        console.error('[mainPlays] 玩法挂载失败:' + type, err);
-        return null;
+        retryCleanup = () => {
+          if (button) button.removeEventListener('click', startLoad);
+          if (reload) reload.removeEventListener('click', reloadPage);
+        };
       }
-      mounting = false;
-      if (hasPendingResult) deliver(pendingResult);
+
+      function startLoad() {
+        if (!active || loading) return;
+        clearRetry();
+        loading = true;
+        const version = ++attempt;
+        busy(true);
+        container.innerHTML = '<div class="empty" role="status" aria-live="polite">正在准备' +
+          escape(registry.label(type)) + '…</div>';
+        registry.load(type).then((def) => {
+          if (!active || version !== attempt) return;
+          loading = false;
+          busy(false);
+          if (!launch(def)) showFailure();
+        }).catch(() => {
+          if (!active || version !== attempt) return;
+          loading = false;
+          showFailure();
+        });
+      }
+
+      owners.set(container, dispose);
+      if (plays[type] && (!loaders[type] || loaders[type].ready)) {
+        if (!launch(plays[type])) { dispose(); return null; }
+      } else startLoad();
       // 无常驻资源的玩法也需要一个句柄，用于退出后忽略迟到的 done。
       return dispose;
     },

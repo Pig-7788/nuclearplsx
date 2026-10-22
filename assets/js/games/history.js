@@ -1,3 +1,6 @@
+import '../main-plays.js';
+import '../history-exhibit-scene.js';
+
 /* Historical reading lesson with an abstract, closed exterior exhibit. */
 window.NEG = window.NEG || {};
 (function (NEG) {

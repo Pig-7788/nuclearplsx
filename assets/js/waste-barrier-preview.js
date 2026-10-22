@@ -1,3 +1,6 @@
+import './waste-barrier-scene.js';
+import './waste-barriers.js';
+
 (function () {
   'use strict';
   const key = 'nuclear-epoch:waste-barriers:v1';

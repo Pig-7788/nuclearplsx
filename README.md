@@ -21,13 +21,13 @@
 
 ## 运行
 
-不需要构建，也不请求 CDN。直接用浏览器打开 `index.html`，或在项目目录启动静态服务器：
+不需要构建或安装依赖，也不请求 CDN。使用原生 ES Modules，需通过 HTTP(S) 访问；请勿用 `file://` 直接打开 `index.html`。在项目目录启动静态服务器：
 
 ```bash
 python3 -m http.server 8000
 ```
 
-访问 <http://localhost:8000>。3D 渲染不受支持或上下文丢失时，新关卡会显示静态示意，仍可完成学习。第二章支持旋转按钮与键盘操作，第六章支持点选作为拖放的等价方式。
+访问 <http://localhost:8000>。服务器需正确返回 JavaScript 和 CSS 的 MIME 类型，普通静态托管即可，也支持仓库子目录部署。3D 渲染不受支持或上下文丢失时，新关卡会显示静态示意，仍可完成学习。第二章支持旋转按钮与键盘操作，第六章支持点选作为拖放的等价方式。
 
 独立四重屏障预览：`labs/waste-barriers.html`。
 
@@ -36,6 +36,12 @@ python3 -m http.server 8000
 仓库管理员可在 GitHub 的 Settings → Pages 中选择 Deploy from a branch，分支选 `main`，目录选 `/ (root)`，保存后即可使用 <https://pig-7788.github.io/nuclearplsx/>。本项目不需要构建步骤。
 
 ## 流畅度
+
+`index.html` 只包含页面外壳、基础样式及一个模块入口。首页只加载目录、存档摘要和首页所需数据；点击入口时，路由通过 `import()` 加载对应页面及依赖，并等待该页样式就绪。进入认知档案只加载章节文字，小游戏在进入实际关卡时再加载。
+
+Three.js 使用本地 ES Module，不创建 `window.THREE`。只有第六章的四重屏障关卡或独立深地质处置实验室需要它；两处共享同一份库。第二章的外观展台使用独立的轻量 WebGL 实现。成功加载的模块与样式在本次访问中复用，不重复下载或注册。
+
+切换页面立即清理旧场景；快速连续点击只显示最后选择的页面，迟到的加载和关卡回调不能覆盖当前界面或写入进度。加载失败会显示恢复入口，原有存档不变。
 
 3D 场景在静止、滚出屏幕或切到后台时停止绘制；独立地质处置实验室的自动旋转需手动开启。重复设施合并绘制，高分屏使用有限的渲染像素预算。章节按整章批量测量分页，首次音效初始化安排在页面绘制之后。
 
@@ -53,10 +59,16 @@ python3 -m http.server 8000
 node --test tests/*.test.cjs
 ```
 
-回归测试覆盖首次音效的延后初始化和静音设置、主线关卡生命周期、完成回调去重、跳过与重试、窗口变化、证书保存、三张历史知识卡及四重屏障状态机。
+回归测试覆盖目录与存档摘要、按需加载去重、样式等待、失败重试、快速导航竞态、首次音效的延后初始化和静音设置、主线关卡生命周期、完成回调去重、跳过与重试、窗口变化、证书保存、三张历史知识卡及四重屏障状态机。
 
 ## 代码入口
 
+- `assets/js/app.js`：唯一的 HTML 模块入口和启动失败提示。
+- `assets/js/core.js`：存档、导航和公共界面。
+- `assets/js/catalog.js`：不依赖具体页面实现的路由目录与章节摘要。
+- `assets/js/routes.js`：各路由的动态 import 与样式声明。
+- `assets/js/route-loader.js`、`assets/js/style-loader.js`：加载缓存、失败回收与固定样式顺序。
+- `assets/js/lesson-loaders.js`：六种小游戏的按需入口。
 - `assets/js/modes/main.js`：章节阅读、分页、进度与关卡切换。
 - `assets/js/main-plays.js`：小游戏注册、挂载与清理。
 - `assets/js/data/stories/`：8 章的内容与关卡配置。
@@ -65,6 +77,6 @@ node --test tests/*.test.cjs
 - `assets/js/games/barriers.js`：第六章与独立四重屏障组件的适配。
 - `assets/js/waste-barriers.js`：组装状态、说明与静态备用视图。
 - `assets/js/waste-barrier-scene.js`：基于本地 Three.js 的 3D 剖面。
-- `assets/vendor/three.min.js`：本地渲染库，保留其许可标记。
+- `assets/vendor/three.module.js`：本地 Three.js 0.152.2 的 ES Module，许可见 `THREE-LICENSE.txt`。
 
 页面仍保留辟谣实验室、核电站建造、反应堆控制台、剂量实验室、中国核电，以及主分支新增的独立深地质处置实验室（`#/repository`）。独立实验室将缓冲与回填材料分开展示为五层；第六章按课程要求合并为四重屏障。示意模型和典型剂量用于科普教育，不用于工程计算、真实操作训练或医疗判断。

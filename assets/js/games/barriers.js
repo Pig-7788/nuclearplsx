@@ -1,3 +1,7 @@
+import '../main-plays.js';
+import '../waste-barrier-scene.js';
+import '../waste-barriers.js';
+
 /* 将四重屏障接入主线第六章，宿主统一记档并处理重玩。 */
 window.NEG = window.NEG || {};
 (function (NEG) {
