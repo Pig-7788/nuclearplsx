@@ -114,9 +114,12 @@ window.NEG = window.NEG || {};
     const { store, ui, audio, util: U } = ctx;
     const data = (ctx.data && ctx.data.plant) ? ctx.data : { plant: (NEG.data && NEG.data.plant) || {} };
     const plant = data.plant || {};
-    const allParts = Array.isArray(plant.parts) ? plant.parts.slice() : [];
+    let allParts = Array.isArray(plant.parts) ? plant.parts.slice() : [];
     const loops = Array.isArray(plant.loops) ? plant.loops : [];
     const distractors = useDistractors && Array.isArray(plant.distractors) ? plant.distractors : [];
+    /* 内嵌精简建造：只保留核心部件；完整 12 部件挑战仍在独立实验室 */
+    const subsetIds = Array.isArray(o.partIds) && o.partIds.length ? new Set(o.partIds) : null;
+    if (subsetIds) allParts = allParts.filter((part) => subsetIds.has(part.id));
 
     if (!allParts.length) {
       container.innerHTML = '<div class="empty">压水堆部件数据未加载,请刷新页面。</div>';
@@ -229,6 +232,15 @@ window.NEG = window.NEG || {};
     svg.querySelectorAll('.part').forEach((el) => el.classList.remove('is-built'));
     svg.querySelectorAll('.slot-group').forEach((el) => el.classList.remove('is-done', 'is-next'));
     svg.setAttribute('role', 'group');
+
+    if (subsetIds) {
+      svg.querySelectorAll('.slot-group').forEach((el) => {
+        if (!subsetIds.has(el.dataset.slot)) el.style.display = 'none';
+      });
+      svg.querySelectorAll('.part').forEach((el) => {
+        if (!subsetIds.has(el.dataset.part)) el.style.display = 'none';
+      });
+    }
 
     function say(text) {
       if (!destroyed && footEl) footEl.textContent = text;

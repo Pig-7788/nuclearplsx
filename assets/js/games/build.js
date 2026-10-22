@@ -27,7 +27,10 @@ window.NEG = window.NEG || {};
 
       const handle = NEG.plantBuild.mount(container, {
         variant: 'inline',
-        distractors: true,
+        /* 章节内聚焦 7 个核心部件；完整 12 部件挑战保留在独立实验室 */
+        partIds: ['fuel', 'vessel', 'containment', 'sg', 'turbine', 'generator', 'transformer'],
+        intro: '本节聚焦 7 个核心部件，完整 12 部件挑战在独立实验室。',
+        distractors: false,
         /* 重玩不计分,避免刷分 */
         noScore: !!(opts && opts.replay),
         onComplete(result) {
