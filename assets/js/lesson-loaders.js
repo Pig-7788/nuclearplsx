@@ -8,11 +8,18 @@ games.defineLoader('nuclear_history_exhibit', () => Promise.all([
 games.defineLoader('multi_barrier_sort', () => Promise.all([
   import('./games/barriers.js'), loadStyle('waste-barriers.css')
 ]), { label: '核废料的四重屏障' });
-games.defineLoader('match_connect', () => import('./games/match.js'), { label: '科技与应用配对' });
-games.defineLoader('rumor_debunking_game', () => Promise.all([
-  import('./games/debunk.js'), loadStyle('modes/rumor.css')
-]), { label: '核谣言粉碎机' });
 games.defineLoader('reactor_build_game', () => Promise.all([
   import('./games/build.js'), loadStyle('modes/city.css')
 ]), { label: '核电站建造' });
-games.defineLoader('final_summary', () => import('./games/final.js'), { label: '结业答辩' });
+games.defineLoader('life_service_station', () => Promise.all([
+  import('./games/life-service.js'), loadStyle('lessons.css')
+]), { label: '核技术生活服务站' });
+games.defineLoader('protection_lab', () => Promise.all([
+  import('./games/protection-lab.js'), loadStyle('lessons.css')
+]), { label: '防护原理体验' });
+games.defineLoader('research_desk', () => Promise.all([
+  import('./games/research-desk.js'), loadStyle('lessons.css')
+]), { label: '科研委托台' });
+games.defineLoader('final_summary', () => Promise.all([
+  import('./games/final.js'), loadStyle('lessons.css')
+]), { label: '公众科普回应' });

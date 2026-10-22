@@ -70,7 +70,7 @@ test('the navigation catalog imports without feature, data or browser globals', 
   ]);
 });
 
-test('chapter summaries match the eight source chapters and seventeen knowledge cards', async () => {
+test('chapter summaries match the eight source chapters and nineteen knowledge cards', async () => {
   const { storySummary } = await catalogPromise;
   const { story } = dataRuntime().NEG;
   assert.deepEqual(storySummary.order, expectedOrder);
@@ -88,7 +88,7 @@ test('chapter summaries match the eight source chapters and seventeen knowledge 
     assert.deepEqual(Object.keys(summary).sort(), ['cardCount', 'id', 'summary', 'title']);
     cards += summary.cardCount;
   }
-  assert.equal(cards, 17);
+  assert.equal(cards, 19);
   assert.equal(storySummary.totalCards, cards);
 });
 
