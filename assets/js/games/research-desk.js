@@ -195,7 +195,7 @@ window.NEG = window.NEG || {};
         const mastered = result.filter((r) => r.deviceWrong + r.reasonWrong === 0).length;
         const corrected = result.filter((r) => r.deviceWrong + r.reasonWrong > 0).length;
         container.querySelector('.ls-body').innerHTML =
-          '<div class="ls-main">' +
+          '<div class="ls-main ls-summary">' +
             '<div class="ls-card" style="flex:0 0 auto">' +
               '<div class="ls-ask">' + esc(g.summary_title || '同一台“核技术”，在不同任务里要选不同的工具') + '</div>' +
               '<p class="ls-note" style="margin-top:4px">合成新元素、解析材料结构、精准治疗肿瘤，靠的不是“更强的核”，而是“合适的装置 + 明确的能力边界”。</p>' +

@@ -3,8 +3,8 @@
    ------------------------------------------------------------
    设计约束:
      1. 整页不允许滚动(不使用鼠标滚轮翻页)
-     2. 正文区不允许出现滚动条;内容放不下时改为「下一页」
-     3. 章末小结页固定为单屏
+     2. 正文优先分页，长段落保留字号并在区域内滚动
+     3. 小结内容可滚动，底部操作保持可见
    ============================================================ */
 
 /* ---------- 一屏外壳 ---------- */
@@ -74,6 +74,37 @@ body.mode-full-main #view.view-full {
   justify-content: flex-end;
 }
 
+.main-font-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-2);
+  font-size: 15px;
+}
+
+.main-font-control select {
+  min-height: 44px;
+  padding: 6px 10px;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.main-font-control select:focus-visible {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+
+.main-font-hint {
+  margin: 0;
+  color: var(--text-2);
+  font-size: 16px;
+  line-height: 1.6;
+}
+
 /* ---------- 章节一览 ---------- */
 .main-continue {
   flex: 0 0 auto;
@@ -86,7 +117,7 @@ body.mode-full-main #view.view-full {
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
   align-content: start;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .main-card {
@@ -188,7 +219,7 @@ body.mode-full-main #view.view-full {
 .main-text {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 2px;
   display: flex;
   flex-direction: column;
@@ -344,8 +375,10 @@ body.reduce-motion .game-host.pg-in-prev {
 .main-done .md-body {
   flex: 1 1 auto;
   min-height: 0;
-  overflow: hidden;
-  font-size: var(--main-fs, 15px);
+  overflow: auto;
+  font-size: var(--main-fs, 18px);
+  padding: 8px 12px 16px 0;
+  max-width: 1100px;
 }
 
 .main-done .md-title {
@@ -398,9 +431,9 @@ body.reduce-motion .game-host.pg-in-prev {
 
 .main-cards span {
   display: block;
-  font-size: 0.85em;
-  line-height: 1.55;
-  color: var(--text-3);
+  font-size: 1em;
+  line-height: 1.75;
+  color: var(--text-2);
 }
 
 /* ---------- 响应式 ---------- */
@@ -1306,6 +1339,36 @@ body.reduce-motion .game-host.pg-in-prev {
 }
 
 /* ---------- 第一章 · 学习路线 ---------- */
+.pb-task {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+}
+
+.pb-task p {
+  margin: 0;
+  color: var(--text);
+  font-size: max(16px, calc(var(--main-fs, 18px) * 0.9));
+  line-height: 1.6;
+}
+
+.pb-task .btn { min-height: 44px; }
+.pb-inline { overflow-y: auto; overscroll-behavior: contain; }
+.pb-inline .pb-stage { flex: 1 0 200px; min-height: 200px; }
+.pb-inline .game-head h3 { font-size: 20px; }
+.pb-inline .game-intro, .pb-inline .game-foot {
+  font-size: max(16px, calc(var(--main-fs, 18px) * 0.9));
+  line-height: 1.6;
+}
+.pb-inline .pb-tray .part-card {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
 .main-route {
   display: flex;
   flex-direction: column;

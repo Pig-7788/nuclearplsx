@@ -140,7 +140,7 @@ window.NEG = window.NEG || {};
               '<span class="badge badge-line">已记录</span>' +
             '</div>' +
             '<div class="ls-body">' +
-              '<div class="ls-main" style="overflow-y:auto">' +
+              '<div class="ls-main ls-summary">' +
                 '<div class="ls-card">' +
                   '<div class="ls-ask">你的学习起点已记录</div>' +
                   '<p class="ls-note" style="margin-top:4px">前测不公布答案，也不计入成绩。带着问题进入八章，终章会展示“前测 → 结业”的变化，并把需要复习的主题列出来。</p>' +

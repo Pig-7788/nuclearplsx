@@ -183,6 +183,33 @@ function asyncLesson(env) {
   return { attempts, cleanup };
 }
 
+test('reading size is saved before entry and retained when opening a chapter', () => {
+  const env = runtime();
+  const cleanup = env.render();
+  const select = env.root.querySelector('[data-reading-size]');
+  assert.equal(select.value, 'standard');
+  select.value = 'large';
+  select.emit('change');
+  assert.equal(env.state.settings.readingSize, 'large');
+  env.click('[data-resume]');
+  assert.equal(env.root.querySelector('[data-reading-size]').value, 'large');
+  cleanup();
+});
+
+test('changing reading size during a game preserves the active game and its progress', () => {
+  const env = runtime();
+  const { attempts, cleanup } = asyncLesson(env);
+  const game = env.root.querySelector('#activeGame');
+  const select = env.root.querySelector('[data-reading-size]');
+  select.value = 'extra';
+  select.emit('change');
+  assert.equal(env.state.settings.readingSize, 'extra');
+  assert.equal(env.root.querySelector('#activeGame'), game);
+  assert.equal(attempts.length, 1);
+  assert.equal(attempts[0].cleaned, 0);
+  cleanup();
+});
+
 test('resize during a game preserves the game and skipping releases it before late completion can write progress', () => {
   const env = runtime();
   const { attempts, cleanup } = asyncLesson(env);

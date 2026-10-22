@@ -148,7 +148,7 @@ window.NEG = window.NEG || {};
           '<div class="ls-game">' +
             '<div class="ls-head"><h3>' + NEG.icon('check', 15) + ' 一度电的旅程</h3>' +
               '<span class="badge badge-green">已完成</span></div>' +
-            '<div class="ls-body"><div class="ls-main" style="overflow-y:auto">' +
+            '<div class="ls-body"><div class="ls-main ls-summary">' +
               '<div class="ls-card"><div class="ls-ask">核裂变热 → 蒸汽 → 机械能 → 电能</div>' +
                 '<p class="ls-note" style="margin-top:4px">一回路的高压水把堆芯热量带到蒸汽发生器，二回路产生蒸汽推动汽轮机旋转，发电机再把机械能转换成电能，经主变压器升压并入电网。' +
                 '核岛与常规岛之间通过蒸汽发生器换热，放射性一回路水不会直接进入汽轮机。</p></div>' +

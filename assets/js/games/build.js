@@ -9,8 +9,8 @@ import '../plant-build.js';
 
    这里不重复实现建造玩法 —— 直接复用 NEG.plantBuild,也就是
    导航里「核电站建造」模块用的同一份核心:同一张压水堆剖面图、
-   同样按 order 拼装 12 个部件、同样的一/二/三回路贯通与干扰卡。
-   区别只在外壳:这里是内嵌紧凑版,建成后回填主线进度。
+   章节版聚焦 7 个核心部件；独立实验室保留完整 12 部件与干扰卡。
+   这里是内嵌紧凑版,建成后回填主线进度。
    ============================================================ */
 window.NEG = window.NEG || {};
 (function (NEG) {
@@ -29,7 +29,7 @@ window.NEG = window.NEG || {};
         variant: 'inline',
         /* 章节内聚焦 7 个核心部件；完整 12 部件挑战保留在独立实验室 */
         partIds: ['fuel', 'vessel', 'containment', 'sg', 'turbine', 'generator', 'transformer'],
-        intro: '本节聚焦 7 个核心部件，完整 12 部件挑战在独立实验室。',
+        intro: '点选部件，再点击“放入”或图中对应位置。需先完成核岛（含安全壳），再完成发电与并网。完整 12 部件挑战在独立实验室。',
         distractors: false,
         /* 重玩不计分,避免刷分 */
         noScore: !!(opts && opts.replay),

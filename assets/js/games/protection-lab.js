@@ -381,7 +381,7 @@ window.NEG = window.NEG || {};
       function showSummary() {
         const dose = dosePercent();
         bodyEl.innerHTML =
-          '<div class="ls-main">' +
+          '<div class="ls-main ls-summary">' +
             '<div class="ls-card" style="flex:0 0 auto">' +
               '<div class="ls-ask">' + esc(g.summary_title || '两句话记住防护原理') + '</div>' +
               '<p class="ls-note" style="margin-top:4px">外照射：缩短时间、增大距离、加合适屏蔽（γ 用高密度材料）。内照射：阻止吸入、食入和伤口进入，靠通风、负压、防护装备与规范操作。</p>' +

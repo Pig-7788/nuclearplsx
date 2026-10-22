@@ -7,7 +7,7 @@ import '../lesson-loaders.js';
    ------------------------------------------------------------
    读取 window.NEG.story 中的 8 章剧情数据,统一驱动:
      · 章节一览(解锁判定 / 章节进度)
-     · 一屏阅读区(整页不滚动、正文不出滚动条)
+     · 固定操作栏的阅读区(优先分页、长内容保留字号并区域滚动)
      · 知识卡收集与存档
 
    分页模型:
@@ -291,6 +291,34 @@ window.NEG = window.NEG || {};
       let repaint = null;
       let resizeTimer = null;
       let chapterVersion = 0;
+      const readingSizes = { standard: 18, large: 21, extra: 24 };
+      function readingSize() {
+        const key = (store.get().settings || {}).readingSize;
+        return Object.hasOwn(readingSizes, key) ? key : 'standard';
+      }
+      function applyReadingSize() {
+        root.style.setProperty('--main-fs', readingSizes[readingSize()] + 'px');
+      }
+      function fontControl() {
+        return '<label class="main-font-control">字号 <select data-reading-size aria-label="阅读字号">' +
+          '<option value="standard">标准</option><option value="large">大</option><option value="extra">特大</option></select></label>';
+      }
+      function bindFontControl() {
+        const select = root.querySelector('[data-reading-size]');
+        if (!select) return;
+        select.value = readingSize();
+        select.addEventListener('change', () => {
+          const key = select.value;
+          if (!Object.hasOwn(readingSizes, key)) return;
+          const state = store.get();
+          state.settings = state.settings || {};
+          state.settings.readingSize = key;
+          store.save();
+          applyReadingSize();
+          if (repaint) repaint();
+        });
+      }
+      applyReadingSize();
 
       function stopPlay() {
         const cleanup = playCleanup;
@@ -478,13 +506,16 @@ window.NEG = window.NEG || {};
                 '<h2>' + NEG.icon('book') + ' 认知档案</h2>' +
               '</div>' +
               '<div class="main-tools">' +
+                fontControl() +
                 '<span class="badge badge-cyan">已完成 ' + done + ' / ' + total + '</span>' +
                 '<span class="badge badge-line">知识卡 ' + cards + ' / ' + allCards + '</span>' +
               '</div>' +
             '</header>' +
+            '<p class="main-font-hint">开始前可在上方调整字号，学习中也能随时更改；长内容可在阅读区域内滚动。</p>' +
             '<div class="panel panel-pad main-continue">' + contBlock + '</div>' +
             '<div class="main-grid">' + cardsHTML + '</div>' +
           '</div>';
+        bindFontControl();
 
         const resumeBtn = root.querySelector('[data-resume]');
         if (resumeBtn) {
@@ -523,6 +554,7 @@ window.NEG = window.NEG || {};
                 '<h2>' + NEG.icon(icon) + ' ' + U.esc(ch.title || id) + '</h2>' +
               '</div>' +
               '<div class="main-tools">' +
+                fontControl() +
                 '<span class="badge badge-line" id="mainStep">1 / 1</span>' +
                 '<button class="btn btn-quiet btn-sm" type="button" data-action="menu">' +
                   NEG.icon('home', 14) + ' 章节一览</button>' +
@@ -532,6 +564,7 @@ window.NEG = window.NEG || {};
             '</header>' +
             '<div id="mainBody" style="flex:1 1 auto;min-height:0;overflow:hidden"></div>' +
           '</div>';
+        bindFontControl();
 
         const body = root.querySelector('#mainBody');
         const stepEl = root.querySelector('#mainStep');
@@ -570,21 +603,6 @@ window.NEG = window.NEG || {};
           m.current = id;
           m.panelIndex = index;
           store.save();
-        }
-
-        /* 放不下时把字号往下压,直到整页装下为止。
-           基准字号从当前计算样式读取,自动适配各断点(桌面 16px / 窄屏 13.5px)。 */
-        function fitText(el, floor) {
-          if (!el || !el.clientHeight) return;
-          el.style.removeProperty('--main-fs');
-          const sample = el.querySelector('p') || el;
-          const base = Math.round(parseFloat(getComputedStyle(sample).fontSize)) || 16;
-          let size = base;
-          let guard = 0;
-          while (el.scrollHeight > el.clientHeight + 1 && size > floor && guard++ < 12) {
-            size -= 1;
-            el.style.setProperty('--main-fs', size + 'px');
-          }
         }
 
         function bindBlocks() {
@@ -655,9 +673,8 @@ window.NEG = window.NEG || {};
           textEl.innerHTML = html;
 
           bindBlocks();
-          /* 先渲染底部按钮栏:它会改变正文区可用高度,必须先定下来再量字号 */
           renderBar();
-          fitText(textEl, 11);
+          textEl.scrollTop = 0;
           animateIn(textEl, dir || 1);
         }
 
@@ -832,12 +849,10 @@ window.NEG = window.NEG || {};
 
           if (stepEl) stepEl.textContent = '完成';
 
-          const doneEl = root.querySelector('#mainDone');
           const doneWrap = root.querySelector('.main-done');
           if (doneWrap && !document.body.classList.contains('reduce-motion')) {
             doneWrap.classList.add('is-completing');
           }
-          fitText(doneEl, 9);
 
           const barDone = root.querySelector('#mainBarDone');
           ui.qsa('[data-action="menu"]', barDone).forEach((btn) => {
@@ -886,6 +901,11 @@ window.NEG = window.NEG || {};
           if (inGame) return;            /* 关卡进行中不响应翻页键 */
           if (U.isTyping(e)) return;
           if (document.querySelector('.overlay')) return;
+          // Preserve native keyboard scrolling when a large-font paragraph spans the reading area.
+          if (textEl && textEl.scrollHeight > textEl.clientHeight + 1) {
+            if (['ArrowDown', 'PageDown', ' '].includes(e.key) && textEl.scrollTop + textEl.clientHeight < textEl.scrollHeight - 1) return;
+            if (['ArrowUp', 'PageUp'].includes(e.key) && textEl.scrollTop > 0) return;
+          }
           if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'PageDown') {
             e.preventDefault();
             advance();
